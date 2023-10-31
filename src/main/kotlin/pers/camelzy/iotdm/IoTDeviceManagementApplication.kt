@@ -7,5 +7,9 @@ import org.springframework.boot.runApplication
 class IoTDeviceManagementApplication
 
 fun main(args: Array<String>) {
-    runApplication<IoTDeviceManagementApplication>(*args)
+    try {
+        runApplication<IoTDeviceManagementApplication>(*args)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
 }
