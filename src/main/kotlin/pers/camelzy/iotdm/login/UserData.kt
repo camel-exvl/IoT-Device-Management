@@ -12,16 +12,16 @@ data class UserData(
     @JsonProperty("username")
     @Field("username")
     @Indexed(unique = true)
-    var username: String,
+    var username: String = "",
 
     @JsonProperty("email")
     @Field("email")
     @Indexed(unique = true)
-    var email: String,
+    var email: String = "",
 
     @JsonProperty("password")
     @Field("password")
-    var password: String,
+    var password: String = ""
 ) {
     @Id
     var id: ObjectId = ObjectId()
