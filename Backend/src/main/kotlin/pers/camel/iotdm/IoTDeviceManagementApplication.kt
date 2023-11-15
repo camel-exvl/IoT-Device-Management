@@ -1,4 +1,4 @@
-package pers.camelzy.iotdm
+package pers.camel.iotdm
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
