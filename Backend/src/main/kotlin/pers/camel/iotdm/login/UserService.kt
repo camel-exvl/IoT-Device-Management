@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.security.web.authentication.RememberMeServices
@@ -25,7 +24,6 @@ import pers.camel.iotdm.ResponseStructure
 @Tag(name = "User", description = "User management")
 class UserService(
     @Autowired val userRepo: UserRepo,
-    val authenticationManager: AuthenticationManager,
     val rememberMeServices: RememberMeServices
 ) {
     private final val log = LogFactory.getLog(UserService::class.java)
@@ -117,7 +115,7 @@ class UserService(
     }
 
     data class LoginData(
-        var username: String = "", var password: String = ""
+        var username: String = "", var password: String = "", var rememberMe: Boolean = false
     )
 
     @Operation(summary = "Login")

@@ -24,12 +24,13 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter
-import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter
 import org.springframework.stereotype.Service
-import pers.camel.iotdm.login.AuthenticationFilter
-import pers.camel.iotdm.login.LoginAuthenticationProvider
 import pers.camel.iotdm.login.UserRepo
+import pers.camel.iotdm.login.utils.AuthenticationFilter
+import pers.camel.iotdm.login.utils.HttpRequestFilter
+import pers.camel.iotdm.login.utils.LoginAuthenticationProvider
+import pers.camel.iotdm.login.utils.RememberMeService
 
 
 @Configuration
@@ -87,6 +88,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                 }.deleteCookies("remember-me")
             }
             .addFilterBefore(authenticationFilter, BasicAuthenticationFilter::class.java)
+            .addFilterBefore(HttpRequestFilter(), AuthenticationFilter::class.java) // 用于包装请求，原始请求无法重复读取body 不知道是什么诡异设计
         return http.build()
     }
 
@@ -111,12 +113,8 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
     }
 
     @Bean
-    fun rememberMeServices(): TokenBasedRememberMeServices {
-        val rememberMeServices = TokenBasedRememberMeServices(key, UserDetailsServiceImpl(userRepo))
-        rememberMeServices.setAlwaysRemember(true)
-        rememberMeServices.setTokenValiditySeconds(60 * 60 * 24 * 7)
-        rememberMeServices.setCookieName("remember-me")
-        return rememberMeServices
+    fun rememberMeServices(): RememberMeService {
+        return RememberMeService(key, UserDetailsServiceImpl(userRepo))
     }
 
     @Bean
