@@ -1,13 +1,13 @@
-import {outLogin} from '@/services/ant-design-pro/api';
-import {LogoutOutlined, SettingOutlined, UserOutlined} from '@ant-design/icons';
+import {LoginOutlined, LogoutOutlined, SettingOutlined, UserOutlined} from '@ant-design/icons';
 import {useEmotionCss} from '@ant-design/use-emotion-css';
-import {history, useModel} from '@umijs/max';
+import {history, useIntl, useModel} from '@umijs/max';
 import {Spin} from 'antd';
 import {stringify} from 'querystring';
 import type {MenuInfo} from 'rc-menu/lib/interface';
 import React, {useCallback} from 'react';
 import {flushSync} from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
+import {logout} from "@/services/swagger/User";
 
 export type GlobalHeaderRightProps = {
   menu?: boolean;
@@ -15,17 +15,20 @@ export type GlobalHeaderRightProps = {
 };
 
 export const AvatarName = () => {
+  const intl = useIntl();
   const {initialState} = useModel('@@initialState');
   const {currentUser} = initialState || {};
-  return <span className="anticon">{currentUser?.name}</span>;
+  const username = currentUser ? currentUser.username : intl.formatMessage({id: 'component.globalHeader.notLogin'});
+  return <span className="anticon">{username}</span>;
 };
 
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({menu, children}) => {
+  const intl = useIntl();
   /**
    * 退出登录，并且将当前的 url 保存
    */
   const loginOut = async () => {
-    await outLogin();
+    await logout();
     const {search, pathname} = window.location;
     const urlParams = new URL(window.location.href).searchParams;
     /** 此方法会跳转到 redirect 参数所在的位置 */
@@ -40,6 +43,23 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({menu, children
       });
     }
   };
+
+  const login = async () => {
+    const {search, pathname} = window.location;
+    const urlParams = new URL(window.location.href).searchParams;
+    /** 此方法会跳转到 redirect 参数所在的位置 */
+    const redirect = urlParams.get('redirect');
+    // Note: There may be security issues, please note
+    if (window.location.pathname !== '/user/login' && !redirect) {
+      history.replace({
+        pathname: '/user/login',
+        search: stringify({
+          redirect: pathname + search,
+        }),
+      });
+    }
+  }
+
   const actionClassName = useEmotionCss(({token}) => {
     return {
       display: 'flex',
@@ -67,6 +87,10 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({menu, children
         loginOut();
         return;
       }
+      if (key === 'login') {
+        login();
+        return;
+      }
       history.push(`/account/${key}`);
     },
     [setInitialState],
@@ -90,9 +114,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({menu, children
 
   const {currentUser} = initialState;
 
-  if (!currentUser || !currentUser.name) {
-    return loading;
-  }
+  // if (!currentUser || !currentUser.username) {
+  //   return loading;
+  // }
 
   const menuItems = [
     ...(menu
@@ -112,11 +136,16 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({menu, children
         },
       ]
       : []),
-    {
-      key: 'logout',
-      icon: <LogoutOutlined/>,
-      label: '退出登录',
-    },
+    (currentUser && currentUser.username ?
+      {
+        key: 'logout',
+        icon: <LogoutOutlined/>,
+        label: intl.formatMessage({id: 'component.globalHeader.logout'}),
+      } : {
+        key: 'login',
+        icon: <LoginOutlined/>,
+        label: intl.formatMessage({id: 'component.globalHeader.login'}),
+      }),
   ];
 
   return (

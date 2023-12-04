@@ -4,7 +4,7 @@ import {request} from '@umijs/max';
 
 /** Create a new user POST /api/user/create */
 export async function create(body: API.CreateUserData, options?: { [key: string]: any }) {
-  return request<API.ResponseStructureObject>('/api/user/create', {
+  return request<API.ResponseStructure>('/api/user/create', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -16,7 +16,7 @@ export async function create(body: API.CreateUserData, options?: { [key: string]
 
 /** Get user info GET /api/user/current */
 export async function current(options?: { [key: string]: any }) {
-  return request<API.ResponseStructureUserInfo>('/api/user/current', {
+  return request<API.ResponseStructure>('/api/user/current', {
     method: 'GET',
     ...(options || {}),
   });
@@ -24,7 +24,7 @@ export async function current(options?: { [key: string]: any }) {
 
 /** Login POST /api/user/login */
 export async function login(body: API.LoginData, options?: { [key: string]: any }) {
-  return request<API.ResponseStructureObject>('/api/user/login', {
+  return request<API.ResponseStructure>('/api/user/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export async function login(body: API.LoginData, options?: { [key: string]: any 
 
 /** Logout GET /api/user/logout */
 export async function logout(options?: { [key: string]: any }) {
-  return request<API.ResponseStructureObject>('/api/user/logout', {
+  return request<API.ResponseStructure>('/api/user/logout', {
     method: 'GET',
     ...(options || {}),
   });

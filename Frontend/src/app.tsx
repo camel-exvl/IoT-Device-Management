@@ -1,5 +1,5 @@
 import Footer from '@/components/Footer';
-import {Question, SelectLang} from '@/components/RightContent';
+import {SelectLang, Theme} from '@/components/RightContent';
 import {LinkOutlined} from '@ant-design/icons';
 import type {Settings as LayoutSettings} from '@ant-design/pro-components';
 import {SettingDrawer} from '@ant-design/pro-components';
@@ -7,9 +7,10 @@ import type {RunTimeLayoutConfig} from '@umijs/max';
 import {history, Link} from '@umijs/max';
 import defaultSettings from '../config/defaultSettings';
 import {errorConfig} from './requestErrorConfig';
-import {currentUser as queryCurrentUser} from './services/ant-design-pro/api';
 import React from 'react';
-import {AvatarDropdown, AvatarName} from './components/RightContent/AvatarDropdown';
+import {current} from "@/services/swagger/User";
+import {AvatarDropdown, AvatarName} from "@/components/RightContent/AvatarDropdown";
+import {Avatar} from "antd";
 
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
@@ -19,31 +20,29 @@ const loginPath = '/user/login';
  * */
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
-  currentUser?: API.CurrentUser;
+  currentUser?: API.UserInfo;
   loading?: boolean;
-  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
+  fetchUserInfo?: () => Promise<API.UserInfo | undefined>;
 }> {
   const fetchUserInfo = async () => {
     try {
-      const msg = await queryCurrentUser({
-        skipErrorHandler: true,
-      });
-      return msg.data;
+      const msg = await current();
+      return msg.data as API.UserInfo;
     } catch (error) {
       history.push(loginPath);
     }
     return undefined;
   };
-  // 如果不是登录页面，执行
-  const {location} = history;
-  if (location.pathname !== loginPath) {
-    const currentUser = await fetchUserInfo();
-    return {
-      fetchUserInfo,
-      currentUser,
-      settings: defaultSettings as Partial<LayoutSettings>,
-    };
-  }
+  // // 如果不是登录页面，执行
+  // const {location} = history;
+  // if (location.pathname !== loginPath) {
+  //   const currentUser = await fetchUserInfo();
+  //   return {
+  //     fetchUserInfo,
+  //     currentUser,
+  //     settings: defaultSettings as Partial<LayoutSettings>,
+  //   };
+  // }
   return {
     fetchUserInfo,
     settings: defaultSettings as Partial<LayoutSettings>,
@@ -53,25 +52,32 @@ export async function getInitialState(): Promise<{
 // ProLayout 支持的api https://procomponents.ant.design/components/layout
 export const layout: RunTimeLayoutConfig = ({initialState, setInitialState}) => {
   return {
-    actionsRender: () => [<Question key="doc"/>, <SelectLang key="SelectLang"/>],
+    actionsRender: () => [<SelectLang key="SelectLang"/>, <Theme key="Theme"/>],
     avatarProps: {
-      src: initialState?.currentUser?.avatar,
+      src: null,
       title: <AvatarName/>,
       render: (_, avatarChildren) => {
-        return <AvatarDropdown>{avatarChildren}</AvatarDropdown>;
+        const {currentUser} = initialState || {};
+        if (currentUser && currentUser.username) {
+          return <><Avatar style={{backgroundColor: '#7265e6', verticalAlign: 'middle'}}
+                           size="large">{currentUser.username.substring(0, 5)}</Avatar><AvatarDropdown>{avatarChildren}</AvatarDropdown></>;
+        } else {
+          return <><Avatar style={{backgroundColor: '#7265e6', verticalAlign: 'middle'}}
+                           size="large">Guest</Avatar><AvatarDropdown>{avatarChildren}</AvatarDropdown></>;
+        }
       },
     },
     waterMarkProps: {
-      content: initialState?.currentUser?.name,
+      content: initialState?.currentUser ? initialState.currentUser.username : 'Guest',
     },
     footerRender: () => <Footer/>,
-    onPageChange: () => {
-      const {location} = history;
-      // 如果没有登录，重定向到 login
-      if (!initialState?.currentUser && location.pathname !== loginPath) {
-        history.push(loginPath);
-      }
-    },
+    // onPageChange: () => {
+    //   const {location} = history;
+    //   // 如果没有登录，重定向到 login
+    //   if (!initialState?.currentUser && location.pathname !== loginPath) {
+    //     history.push(loginPath);
+    //   }
+    // },
     layoutBgImgList: [
       {
         src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
