@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.AuthenticationServiceException
+import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
@@ -30,6 +31,11 @@ class AuthenticationFilter : AbstractAuthenticationProcessingFilter {
         val text = request.inputStream.bufferedReader().readText()
         val objectMapper = ObjectMapper()
         val map = objectMapper.readValue(text, Map::class.java)
+        if (map["username"] == null) {
+            throw BadCredentialsException("Username is null")
+        } else if (map["password"] == null) {
+            throw BadCredentialsException("Password is null")
+        }
 
         val username = map["username"]
         val password = map["password"]

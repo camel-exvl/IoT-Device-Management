@@ -2,6 +2,7 @@ package pers.camel.iotdm.login
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -34,25 +35,17 @@ class UserService(
 
     @Operation(summary = "Create a new user")
     @ApiResponses(
-        value = [ApiResponse(
-            responseCode = "201", description = "Created", content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
+        value = [ApiResponse(responseCode = "201", description = "Created"), ApiResponse(
             responseCode = "400",
-            description = "Request Body Invalid",
-            content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
-            responseCode = "409",
-            description = "Same username or email already exists",
-            content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
+            description = "Request Body Invalid"
+        ), ApiResponse(responseCode = "409", description = "Same username or email already exists"), ApiResponse(
             responseCode = "500",
-            description = "Internal Server Error",
-            content = [Content(mediaType = "application/json")]
+            description = "Internal Server Error"
         )]
     )
     @PostMapping("/create")
-    fun create(@RequestBody createUserData: CreateUserData): ResponseEntity<ResponseStructure> {
-        val ret = ResponseStructure()
+    fun create(@RequestBody createUserData: CreateUserData): ResponseEntity<ResponseStructure<Nothing>> {
+        val ret = ResponseStructure<Nothing>()
         try {
             // validate username, email and password
             if (createUserData.username.length < 6 || createUserData.username.length > 20) {
@@ -60,7 +53,7 @@ class UserService(
                 ret.success = false
                 ret.code = HttpStatus.BAD_REQUEST.value()
                 ret.errorMessage = "username length should be between 6 and 20"
-                return ResponseEntity<ResponseStructure>(ret, HttpStatus.BAD_REQUEST)
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
             val emailRegex = Regex("^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+\$")
             if (!emailRegex.matches(createUserData.email)) {
@@ -68,14 +61,14 @@ class UserService(
                 ret.success = false
                 ret.code = HttpStatus.BAD_REQUEST.value()
                 ret.errorMessage = "invalid email format"
-                return ResponseEntity<ResponseStructure>(ret, HttpStatus.BAD_REQUEST)
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
             if (createUserData.password.length < 6 || createUserData.password.length > 20) {
                 log.warn("Create user: $createUserData failed: password length should be between 6 and 20")
                 ret.success = false
                 ret.code = HttpStatus.BAD_REQUEST.value()
                 ret.errorMessage = "password length should be between 6 and 20"
-                return ResponseEntity<ResponseStructure>(ret, HttpStatus.BAD_REQUEST)
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
 
             // hash password
@@ -89,7 +82,7 @@ class UserService(
             log.info("Create user: $userData success")
             ret.success = true
             ret.code = HttpStatus.CREATED.value()
-            return ResponseEntity<ResponseStructure>(ret, HttpStatus.CREATED)
+            return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CREATED)
         } catch (e: DuplicateKeyException) {
             val duplicateKey = e.message?.substringAfter("IoT.user index: ")?.substringBefore(" dup key")
             return if (duplicateKey != null) {
@@ -97,20 +90,20 @@ class UserService(
                 ret.success = false
                 ret.code = HttpStatus.CONFLICT.value()
                 ret.errorMessage = "$duplicateKey already exists"
-                ResponseEntity<ResponseStructure>(ret, HttpStatus.CONFLICT)
+                ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
             } else {
                 log.error("Create user: $createUserData failed: $e")
                 ret.success = false
                 ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
                 ret.errorMessage = "internal server error"
-                ResponseEntity<ResponseStructure>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+                ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
             }
         } catch (e: Exception) {
             log.error("Create user: $createUserData failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
             ret.errorMessage = "internal server error"
-            return ResponseEntity<ResponseStructure>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
@@ -120,16 +113,12 @@ class UserService(
 
     @Operation(summary = "Login")
     @ApiResponses(
-        value = [ApiResponse(
-            responseCode = "200", description = "OK", content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
-            responseCode = "404", description = "User not found", content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
-            responseCode = "401", description = "Wrong password", content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
+        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
+            responseCode = "404",
+            description = "User not found"
+        ), ApiResponse(responseCode = "401", description = "Wrong password"), ApiResponse(
             responseCode = "500",
             description = "Internal Server Error",
-            content = [Content(mediaType = "application/json")]
         )]
     )
     @PostMapping("/login")
@@ -137,10 +126,11 @@ class UserService(
         @RequestBody data: LoginData,
         request: HttpServletRequest,
         response: HttpServletResponse
-    ): ResponseEntity<ResponseStructure> {
-        val ret = ResponseStructure()
-        return ResponseEntity<ResponseStructure>(ret, HttpStatus.MOVED_PERMANENTLY)
+    ): ResponseEntity<ResponseStructure<Nothing>> {
+        val ret = ResponseStructure<Nothing>()
+        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.MOVED_PERMANENTLY)
     }
+
 
     data class UserInfo(
         var username: String = "", var email: String = ""
@@ -149,19 +139,19 @@ class UserService(
     @Operation(summary = "Get user info")
     @ApiResponses(
         value = [ApiResponse(
-            responseCode = "200", description = "OK", content = [Content(mediaType = "application/json")]
+            responseCode = "200", description = "OK"
         ), ApiResponse(
             responseCode = "500",
             description = "Internal Server Error",
-            content = [Content(mediaType = "application/json")]
+            content = [Content(schema = Schema(implementation = ResponseStructure::class))]
         )]
     )
     @GetMapping("/current")
     fun current(
         request: HttpServletRequest,
         response: HttpServletResponse
-    ): ResponseEntity<ResponseStructure> {
-        val ret = ResponseStructure()
+    ): ResponseEntity<ResponseStructure<UserInfo>> {
+        val ret = ResponseStructure<UserInfo>()
         try {
             val data = rememberMeServices.autoLogin(request, response)
             if (data != null) {
@@ -172,46 +162,43 @@ class UserService(
                     ret.success = true
                     ret.code = HttpStatus.OK.value()
                     ret.data = UserInfo(username = user.username, email = user.email)
-                    ResponseEntity<ResponseStructure>(ret, HttpStatus.OK)
+                    ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.OK)
                 } else {
                     log.error("Get user info failed: user $username not found")
                     ret.success = false
-                    ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-                    ret.errorMessage = "internal server error"
-                    ResponseEntity<ResponseStructure>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+                    ret.code = HttpStatus.NOT_FOUND.value()
+                    ret.errorMessage = "user not found"
+                    ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.NOT_FOUND)
                 }
             } else {
                 log.error("Get user info failed: user not found")
                 ret.success = false
-                ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-                ret.errorMessage = "internal server error"
-                return ResponseEntity<ResponseStructure>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+                ret.code = HttpStatus.NOT_FOUND.value()
+                ret.errorMessage = "user not found"
+                return ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Get user info failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
             ret.errorMessage = "internal server error"
-            return ResponseEntity<ResponseStructure>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
     @Operation(summary = "Logout")
     @ApiResponses(
-        value = [ApiResponse(
-            responseCode = "200", description = "OK", content = [Content(mediaType = "application/json")]
-        ), ApiResponse(
+        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
             responseCode = "500",
-            description = "Internal Server Error",
-            content = [Content(mediaType = "application/json")]
+            description = "Internal Server Error"
         )]
     )
     @GetMapping("/logout")
     fun logout(
         request: HttpServletRequest,
         response: HttpServletResponse
-    ): ResponseEntity<ResponseStructure> {
-        val ret = ResponseStructure()
-        return ResponseEntity<ResponseStructure>(ret, HttpStatus.MOVED_PERMANENTLY)
+    ): ResponseEntity<ResponseStructure<Nothing>> {
+        val ret = ResponseStructure<Nothing>()
+        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.MOVED_PERMANENTLY)
     }
 }

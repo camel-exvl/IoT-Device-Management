@@ -1,8 +1,8 @@
 package pers.camel.iotdm
 
-data class ResponseStructure(
+data class ResponseStructure<T>(
     var success: Boolean = false,
     var errorMessage: String = "",
     var code: Int = 0,
-    var data: Any? = null
+    var data: T? = null
 )

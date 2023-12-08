@@ -31,7 +31,11 @@ class RememberMeService : TokenBasedRememberMeServices {
         val objectMapper = ObjectMapper()
         val map = objectMapper.readValue(text, Map::class.java)
 
-        val rememberMe = map["rememberMe"] as Boolean
+        val rememberMe = if (map["rememberMe"] == null) {
+            false
+        } else {
+            map["rememberMe"] as Boolean
+        }
         if (rememberMe) {
             super.setTokenValiditySeconds(60 * 60 * 24 * 7)
         } else {

@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.apache.commons.logging.LogFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
@@ -62,7 +63,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                     response.contentType = "application/json;charset=UTF-8"
                     response.status = HttpServletResponse.SC_UNAUTHORIZED
                     val out = response.writer
-                    val ret = ResponseStructure()
+                    val ret = ResponseStructure<Nothing>()
                     ret.success = false
                     ret.code = HttpStatus.UNAUTHORIZED.value()
                     ret.errorMessage = "User not logged in"
@@ -79,7 +80,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                     response.contentType = "application/json;charset=UTF-8"
                     response.status = HttpServletResponse.SC_OK
                     val out = response.writer
-                    val ret = ResponseStructure()
+                    val ret = ResponseStructure<Nothing>()
                     ret.success = true
                     ret.code = HttpStatus.OK.value()
                     out.write(objectMapper.writeValueAsString(ret))
@@ -105,7 +106,8 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
         }
     }
 
-    private val key = "remember-me"
+    @Value("\${rememberMe.key}")
+    private lateinit var key: String
 
     @Bean
     fun rememberMeFilter(): RememberMeAuthenticationFilter {
@@ -131,7 +133,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
             response.contentType = "application/json;charset=UTF-8"
             response.status = HttpServletResponse.SC_OK
             val out = response.writer
-            val ret = ResponseStructure()
+            val ret = ResponseStructure<Nothing>()
             ret.success = true
             ret.code = HttpStatus.OK.value()
             out.write(ObjectMapper().writeValueAsString(ret))
@@ -151,19 +153,44 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
         ) {
             log.warn("Authentication failure: ${exception.message}")
             response.contentType = "application/json;charset=UTF-8"
-            val ret = ResponseStructure()
+            val ret = ResponseStructure<Nothing>()
             val out = response.writer
             if (exception is BadCredentialsException) {
-                if (exception.message == "User not found") {
-                    response.status = HttpServletResponse.SC_NOT_FOUND
-                    ret.success = false
-                    ret.code = HttpStatus.NOT_FOUND.value()
-                    ret.errorMessage = "user not found"
-                } else {
-                    response.status = HttpServletResponse.SC_UNAUTHORIZED
-                    ret.success = false
-                    ret.code = HttpStatus.UNAUTHORIZED.value()
-                    ret.errorMessage = "wrong password"
+                when (exception.message) {
+                    "User not found" -> {
+                        response.status = HttpServletResponse.SC_NOT_FOUND
+                        ret.success = false
+                        ret.code = HttpStatus.NOT_FOUND.value()
+                        ret.errorMessage = "user not found"
+                    }
+
+                    "Wrong password" -> {
+                        response.status = HttpServletResponse.SC_UNAUTHORIZED
+                        ret.success = false
+                        ret.code = HttpStatus.UNAUTHORIZED.value()
+                        ret.errorMessage = "wrong password"
+                    }
+
+                    "Username is null" -> {
+                        response.status = HttpServletResponse.SC_BAD_REQUEST
+                        ret.success = false
+                        ret.code = HttpStatus.BAD_REQUEST.value()
+                        ret.errorMessage = "username is null"
+                    }
+
+                    "Password is null" -> {
+                        response.status = HttpServletResponse.SC_BAD_REQUEST
+                        ret.success = false
+                        ret.code = HttpStatus.BAD_REQUEST.value()
+                        ret.errorMessage = "password is null"
+                    }
+
+                    else -> {
+                        response.status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+                        ret.success = false
+                        ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
+                        ret.errorMessage = "Internal server error"
+                    }
                 }
             } else {
                 response.status = HttpServletResponse.SC_UNAUTHORIZED
