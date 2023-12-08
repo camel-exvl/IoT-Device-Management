@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.Field
 
 @Document("user")
-data class UserData(
+data class User(
     @Field("username")
     @Indexed(unique = true)
     var username: String = "",

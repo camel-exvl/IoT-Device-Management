@@ -23,11 +23,11 @@ import pers.camel.iotdm.ResponseStructure
 @CrossOrigin(origins = ["http://localhost:8000"])
 @RequestMapping("/api/user")
 @Tag(name = "User", description = "User management")
-class UserService(
+class UserController(
     @Autowired val userRepo: UserRepo,
     val rememberMeServices: RememberMeServices
 ) {
-    private final val log = LogFactory.getLog(UserService::class.java)
+    private final val log = LogFactory.getLog(UserController::class.java)
 
     data class CreateUserData(
         var username: String = "", var email: String = "", var password: String = ""
@@ -75,11 +75,11 @@ class UserService(
             val passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
             createUserData.password = passwordEncoder.encode(createUserData.password)
 
-            val userData = UserData(
+            val user = User(
                 username = createUserData.username, email = createUserData.email, password = createUserData.password
             )
-            userRepo.insert(userData)
-            log.info("Create user: $userData success")
+            userRepo.insert(user)
+            log.info("Create user: $user success")
             ret.success = true
             ret.code = HttpStatus.CREATED.value()
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CREATED)
