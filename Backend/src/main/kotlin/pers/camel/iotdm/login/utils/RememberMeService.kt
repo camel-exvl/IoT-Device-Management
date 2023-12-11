@@ -5,7 +5,9 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices
+
 
 class RememberMeService : TokenBasedRememberMeServices {
     constructor(key: String, userDetailsService: UserDetailsService) : super(key, userDetailsService) {
@@ -42,5 +44,10 @@ class RememberMeService : TokenBasedRememberMeServices {
             super.setTokenValiditySeconds(-1)
         }
         super.onLoginSuccess(request, response, successfulAuthentication)
+    }
+
+    override fun logout(request: HttpServletRequest, response: HttpServletResponse, authentication: Authentication) {
+        super.logout(request, response, authentication)
+        SecurityContextLogoutHandler().logout(request, null, authentication)    // logout from spring security
     }
 }
