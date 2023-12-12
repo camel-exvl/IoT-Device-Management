@@ -5,7 +5,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.Field
-import pers.camel.iotdm.device.Device
+import pers.camel.iotdm.device.DeviceType
 
 @Document("user")
 data class User(
@@ -23,4 +23,20 @@ data class User(
 
     @Field("devices")
     var devices: List<Device> = listOf()
+
+    data class Device(
+        @Field("name")
+        var name: String = "",
+        @Field("type")
+        var type: DeviceType = DeviceType.OTHER,
+        @Field("description")
+        var description: String = ""
+    ) {
+        @Id
+        var id: String = ""
+
+        @Field("messages")
+        var messages: List<ObjectId> = listOf()
+    }
 }
+

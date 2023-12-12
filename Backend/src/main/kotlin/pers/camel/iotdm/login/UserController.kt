@@ -1,10 +1,6 @@
 package pers.camel.iotdm.login
 
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -17,7 +13,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.web.bind.annotation.*
 import pers.camel.iotdm.ResponseStructure
-import pers.camel.iotdm.login.User
 import pers.camel.iotdm.login.utils.RememberMeService
 import org.springframework.security.core.userdetails.User as SecurityUser
 
@@ -49,17 +44,8 @@ class UserController(
     }
 
     @Operation(summary = "Create a new user")
-    @ApiResponses(
-        value = [ApiResponse(responseCode = "201", description = "Created"), ApiResponse(
-            responseCode = "400",
-            description = "Request Body Invalid"
-        ), ApiResponse(responseCode = "409", description = "Same username or email already exists"), ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error"
-        )]
-    )
-    @PostMapping("/create")
-    fun create(@RequestBody createUserData: CreateUserData): ResponseEntity<ResponseStructure<Nothing>> {
+    @PostMapping("/register")
+    fun register(@RequestBody createUserData: CreateUserData): ResponseEntity<ResponseStructure<Nothing>> {
         val ret = ResponseStructure<Nothing>()
         try {
             // validate username, email and password
@@ -126,15 +112,6 @@ class UserController(
     )
 
     @Operation(summary = "Login")
-    @ApiResponses(
-        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
-            responseCode = "404",
-            description = "User not found"
-        ), ApiResponse(responseCode = "401", description = "Wrong password"), ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error",
-        )]
-    )
     @PostMapping("/login")
     fun login(
         @RequestBody data: LoginData,
@@ -165,15 +142,6 @@ class UserController(
     )
 
     @Operation(summary = "Get user info")
-    @ApiResponses(
-        value = [ApiResponse(
-            responseCode = "200", description = "OK"
-        ), ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error",
-            content = [Content(schema = Schema(implementation = ResponseStructure::class))]
-        )]
-    )
     @GetMapping("/current")
     fun current(
         request: HttpServletRequest,
@@ -189,7 +157,7 @@ class UserController(
                 ret.code = HttpStatus.OK.value()
                 ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
-                log.error("Get user info failed: user not found.")
+                log.error("Get user info failed: User not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
                 ret.errorMessage = "User not found."
@@ -205,12 +173,6 @@ class UserController(
     }
 
     @Operation(summary = "Logout")
-    @ApiResponses(
-        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error"
-        )]
-    )
     @GetMapping("/logout")
     fun logout(
         request: HttpServletRequest,
@@ -225,15 +187,6 @@ class UserController(
     )
 
     @Operation(summary = "Modify user info")
-    @ApiResponses(
-        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
-            responseCode = "400",
-            description = "Request Body Invalid"
-        ), ApiResponse(responseCode = "404", description = "User not found"), ApiResponse(
-            responseCode = "409",
-            description = "Same username or email already exists"
-        ), ApiResponse(responseCode = "500", description = "Internal Server Error")]
-    )
     @PutMapping("/modify")
     fun modify(
         @RequestBody modifyUserData: ModifyUserData, request: HttpServletRequest,
@@ -264,14 +217,14 @@ class UserController(
                 val userWithSameUsername = userRepo.findByUsername(modifyUserData.username)
                 val userWithSameEmail = userRepo.findByEmail(modifyUserData.email)
                 if (userWithSameUsername != null && userWithSameUsername.id != user.id) {
-                    log.warn("Modify user info failed: username ${modifyUserData.username} already exists.")
+                    log.warn("Modify user info failed: Username ${modifyUserData.username} already exists.")
                     ret.success = false
                     ret.code = HttpStatus.CONFLICT.value()
                     ret.errorMessage = "Username already exists."
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
                 }
                 if (userWithSameEmail != null && userWithSameEmail.id != user.id) {
-                    log.warn("Modify user info failed: email ${modifyUserData.email} already exists.")
+                    log.warn("Modify user info failed: Email ${modifyUserData.email} already exists.")
                     ret.success = false
                     ret.code = HttpStatus.CONFLICT.value()
                     ret.errorMessage = "Email already exists."
@@ -288,7 +241,7 @@ class UserController(
                 ret.code = HttpStatus.OK.value()
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
-                log.error("Modify user info failed: user not found.")
+                log.error("Modify user info failed: User not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
                 ret.errorMessage = "User not found."
@@ -308,15 +261,6 @@ class UserController(
     )
 
     @Operation(summary = "Modify password")
-    @ApiResponses(
-        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
-            responseCode = "400",
-            description = "Request Body Invalid"
-        ), ApiResponse(responseCode = "401", description = "Wrong password"), ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error"
-        )]
-    )
     @PutMapping("/modifyPassword")
     fun modifyPassword(
         @RequestBody modifyPasswordData: ModifyPasswordData, request: HttpServletRequest,
@@ -329,7 +273,7 @@ class UserController(
 
                 // validate password
                 if (!validatePassword(modifyPasswordData.newPassword)) {
-                    log.warn("Modify password failed: password length should be between 6 and 20.")
+                    log.warn("Modify password failed: Password length should be between 6 and 20.")
                     ret.success = false
                     ret.code = HttpStatus.BAD_REQUEST.value()
                     ret.errorMessage = "Password length should be between 6 and 20."
@@ -339,7 +283,7 @@ class UserController(
                 // check if old password is correct
                 val passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
                 if (!passwordEncoder.matches(modifyPasswordData.oldPassword, user.password)) {
-                    log.warn("Modify password failed: wrong password.")
+                    log.warn("Modify password failed: Wrong password.")
                     ret.success = false
                     ret.code = HttpStatus.UNAUTHORIZED.value()
                     ret.errorMessage = "Wrong password."
@@ -358,7 +302,7 @@ class UserController(
                 ret.code = HttpStatus.OK.value()
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
-                log.error("Modify password failed: user not found.")
+                log.error("Modify password failed: User not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
                 ret.errorMessage = "User not found."
@@ -374,12 +318,6 @@ class UserController(
     }
 
     @Operation(summary = "Delete user")
-    @ApiResponses(
-        value = [ApiResponse(responseCode = "200", description = "OK"), ApiResponse(
-            responseCode = "500",
-            description = "Internal Server Error"
-        )]
-    )
     @DeleteMapping("/delete")
     fun delete(
         request: HttpServletRequest,
@@ -401,7 +339,7 @@ class UserController(
                 ret.code = HttpStatus.OK.value()
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
-                log.error("Delete user failed: user not found.")
+                log.error("Delete user failed: User not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
                 ret.errorMessage = "User not found."
