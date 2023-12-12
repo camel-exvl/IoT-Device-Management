@@ -40,7 +40,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        val authenticationFilter = AuthenticationFilter(authenticationManager())
+        val authenticationFilter = AuthenticationFilter(userRepo, authenticationManager())
         authenticationFilter.rememberMeServices = rememberMeServices()
         authenticationFilter.setAuthenticationSuccessHandler(SuccessHandler())
         authenticationFilter.setAuthenticationFailureHandler(FailureHandler())
@@ -100,9 +100,13 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
 
     @Service
     class UserDetailsServiceImpl(@Autowired private val userRepo: UserRepo) : UserDetailsService {
-        override fun loadUserByUsername(username: String): User {
-            val user = userRepo.findByUsername(username) ?: throw UsernameNotFoundException("User not found")
-            return User(user.username, user.password, createAuthorityList("USER"))
+        // username, password 实际上存储的是 id, password
+        override fun loadUserByUsername(id: String): User {
+            val user = userRepo.findById(id)
+            if (user.isEmpty) {
+                throw UsernameNotFoundException("User not found")
+            }
+            return User(user.get().id.toString(), user.get().password, createAuthorityList("USER"))
         }
     }
 
@@ -161,28 +165,28 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                         response.status = HttpServletResponse.SC_NOT_FOUND
                         ret.success = false
                         ret.code = HttpStatus.NOT_FOUND.value()
-                        ret.errorMessage = "user not found"
+                        ret.errorMessage = "User not found"
                     }
 
                     "Wrong password" -> {
                         response.status = HttpServletResponse.SC_UNAUTHORIZED
                         ret.success = false
                         ret.code = HttpStatus.UNAUTHORIZED.value()
-                        ret.errorMessage = "wrong password"
+                        ret.errorMessage = "Wrong password"
                     }
 
                     "Username is null" -> {
                         response.status = HttpServletResponse.SC_BAD_REQUEST
                         ret.success = false
                         ret.code = HttpStatus.BAD_REQUEST.value()
-                        ret.errorMessage = "username is null"
+                        ret.errorMessage = "Username is null"
                     }
 
                     "Password is null" -> {
                         response.status = HttpServletResponse.SC_BAD_REQUEST
                         ret.success = false
                         ret.code = HttpStatus.BAD_REQUEST.value()
-                        ret.errorMessage = "password is null"
+                        ret.errorMessage = "Password is null"
                     }
 
                     else -> {

@@ -46,7 +46,7 @@ class RememberMeService : TokenBasedRememberMeServices {
         super.onLoginSuccess(request, response, successfulAuthentication)
     }
 
-    override fun logout(request: HttpServletRequest, response: HttpServletResponse, authentication: Authentication) {
+    override fun logout(request: HttpServletRequest, response: HttpServletResponse, authentication: Authentication?) {
         super.logout(request, response, authentication)
         SecurityContextLogoutHandler().logout(request, null, authentication)    // logout from spring security
     }

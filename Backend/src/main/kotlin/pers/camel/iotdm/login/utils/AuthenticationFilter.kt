@@ -11,17 +11,23 @@ import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
+import pers.camel.iotdm.login.UserRepo
 
 
 class AuthenticationFilter : AbstractAuthenticationProcessingFilter {
-    private var postOnly = true
+    private val postOnly = true
+    private val userRepo: UserRepo
 
-    constructor() : super(DEFAULT_ANT_PATH_REQUEST_MATCHER)
+    constructor(userRepo: UserRepo) : super(DEFAULT_ANT_PATH_REQUEST_MATCHER) {
+        this.userRepo = userRepo
+    }
 
-    constructor(authenticationManager: AuthenticationManager?) : super(
+    constructor(userRepo: UserRepo, authenticationManager: AuthenticationManager?) : super(
         DEFAULT_ANT_PATH_REQUEST_MATCHER,
         authenticationManager
-    )
+    ) {
+        this.userRepo = userRepo
+    }
 
     @Throws(AuthenticationException::class)
     override fun attemptAuthentication(request: HttpServletRequest, response: HttpServletResponse): Authentication {
@@ -37,10 +43,11 @@ class AuthenticationFilter : AbstractAuthenticationProcessingFilter {
             throw BadCredentialsException("Password is null")
         }
 
-        val username = map["username"]
+        val username = map["username"] as String
         val password = map["password"]
+        val user = userRepo.findByUsername(username) ?: throw BadCredentialsException("User not found")
         val authRequest = UsernamePasswordAuthenticationToken.unauthenticated(
-            username,
+            user.id,
             password
         )
         // Allow subclasses to set the "details" property

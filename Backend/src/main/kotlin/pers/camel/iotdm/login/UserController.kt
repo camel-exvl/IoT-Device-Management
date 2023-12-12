@@ -9,15 +9,17 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.apache.commons.logging.LogFactory
+import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.userdetails.User
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.web.bind.annotation.*
 import pers.camel.iotdm.ResponseStructure
+import pers.camel.iotdm.login.User
 import pers.camel.iotdm.login.utils.RememberMeService
+import org.springframework.security.core.userdetails.User as SecurityUser
 
 @RestController
 @CrossOrigin(origins = ["http://localhost:8000"])
@@ -62,24 +64,24 @@ class UserController(
         try {
             // validate username, email and password
             if (!validateUsername(createUserData.username)) {
-                log.warn("Create user: $createUserData failed: username length should be between 6 and 20")
+                log.warn("Create user failed: username length should be between 6 and 20.")
                 ret.success = false
                 ret.code = HttpStatus.BAD_REQUEST.value()
-                ret.errorMessage = "username length should be between 6 and 20"
+                ret.errorMessage = "Username length should be between 6 and 20."
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
             if (!validateEmail(createUserData.email)) {
-                log.warn("Create user: $createUserData failed: invalid email format")
+                log.warn("Create user failed: ${createUserData.email} is not a valid email address.")
                 ret.success = false
                 ret.code = HttpStatus.BAD_REQUEST.value()
-                ret.errorMessage = "invalid email format"
+                ret.errorMessage = "Invalid email format."
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
             if (!validatePassword(createUserData.password)) {
-                log.warn("Create user: $createUserData failed: password length should be between 6 and 20")
+                log.warn("Create user failed: password length should be between 6 and 20.")
                 ret.success = false
                 ret.code = HttpStatus.BAD_REQUEST.value()
-                ret.errorMessage = "password length should be between 6 and 20"
+                ret.errorMessage = "Password length should be between 6 and 20."
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
 
@@ -91,30 +93,30 @@ class UserController(
                 username = createUserData.username, email = createUserData.email, password = createUserData.password
             )
             userRepo.insert(user)
-            log.info("Create user: $user success")
+            log.info("Create user: $user success.")
             ret.success = true
             ret.code = HttpStatus.CREATED.value()
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CREATED)
         } catch (e: DuplicateKeyException) {
             val duplicateKey = e.message?.substringAfter("IoT.user index: ")?.substringBefore(" dup key")
             return if (duplicateKey != null) {
-                log.warn("Create user: $createUserData failed: Duplicate key: $duplicateKey. $e")
+                log.warn("Create user failed: Duplicate key: $duplicateKey. $e")
                 ret.success = false
                 ret.code = HttpStatus.CONFLICT.value()
-                ret.errorMessage = "$duplicateKey already exists"
+                ret.errorMessage = "$duplicateKey already exists."
                 ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
             } else {
-                log.error("Create user: $createUserData failed: $e")
+                log.error("Create user failed: $e")
                 ret.success = false
                 ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-                ret.errorMessage = "internal server error"
+                ret.errorMessage = "Internal server error."
                 ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
             }
         } catch (e: Exception) {
-            log.error("Create user: $createUserData failed: $e")
+            log.error("Create user failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "internal server error"
+            ret.errorMessage = "Internal server error."
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -143,9 +145,23 @@ class UserController(
         return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.MOVED_PERMANENTLY)
     }
 
+    fun getCurrentUser(request: HttpServletRequest, response: HttpServletResponse): User {
+        val data = rememberMeService.autoLogin(request, response)
+        if (data != null) {
+            val id = (data.principal as SecurityUser).username
+            val user = userRepo.findById(id)
+            return if (user.isEmpty) {
+                throw Exception("User not found")
+            } else {
+                user.get()
+            }
+        } else {
+            throw Exception("User not found")
+        }
+    }
 
     data class UserInfo(
-        var userId: String = "", var username: String = "", var email: String = ""
+        var userId: ObjectId = ObjectId(), var username: String = "", var email: String = ""
     )
 
     @Operation(summary = "Get user info")
@@ -165,35 +181,25 @@ class UserController(
     ): ResponseEntity<ResponseStructure<UserInfo>> {
         val ret = ResponseStructure<UserInfo>()
         try {
-            val data = rememberMeService.autoLogin(request, response)
-            if (data != null) {
-                val username = (data.principal as User).username
-                val user = userRepo.findByUsername(username)
-                return if (user != null) {
-                    log.info("Get user info success: $username")
-                    ret.success = true
-                    ret.code = HttpStatus.OK.value()
-                    ret.data = UserInfo(userId = user.id.toString(), username = user.username, email = user.email)
-                    ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.OK)
-                } else {
-                    log.error("Get user info failed: user $username not found")
-                    ret.success = false
-                    ret.code = HttpStatus.NOT_FOUND.value()
-                    ret.errorMessage = "user not found"
-                    ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.NOT_FOUND)
-                }
-            } else {
-                log.error("Get user info failed: user not found")
+            return try {
+                val user = getCurrentUser(request, response)
+                ret.data = UserInfo(userId = user.id, username = user.username, email = user.email)
+                log.info("Get user info success: ${user.id}")
+                ret.success = true
+                ret.code = HttpStatus.OK.value()
+                ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.OK)
+            } catch (e: Exception) {
+                log.error("Get user info failed: user not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "user not found"
-                return ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.NOT_FOUND)
+                ret.errorMessage = "User not found."
+                ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Get user info failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "internal server error"
+            ret.errorMessage = "Internal server error."
             return ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -230,81 +236,69 @@ class UserController(
     )
     @PutMapping("/modify")
     fun modify(
-        @RequestBody modifyUserDataInput: ModifyUserData, request: HttpServletRequest,
+        @RequestBody modifyUserData: ModifyUserData, request: HttpServletRequest,
         response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
         val ret = ResponseStructure<Nothing>()
         try {
-            val loginData = rememberMeService.autoLogin(request, response)
-            if (loginData != null) {
-                val username = (loginData.principal as User).username
-                val user = userRepo.findByUsername(username)
-                if (user != null) {
-                    // validate username and email
-                    if (!validateUsername(modifyUserDataInput.username)) {
-                        log.warn("Modify user info: $modifyUserDataInput failed: username length should be between 6 and 20")
-                        ret.success = false
-                        ret.code = HttpStatus.BAD_REQUEST.value()
-                        ret.errorMessage = "username length should be between 6 and 20"
-                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
-                    }
-                    if (!validateEmail(modifyUserDataInput.email)) {
-                        log.warn("Modify user info: $modifyUserDataInput failed: invalid email format")
-                        ret.success = false
-                        ret.code = HttpStatus.BAD_REQUEST.value()
-                        ret.errorMessage = "invalid email format"
-                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
-                    }
+            try {
+                val user = getCurrentUser(request, response)
 
-                    // check if username or email already exists
-                    val userWithSameUsername = userRepo.findByUsername(modifyUserDataInput.username)
-                    if (userWithSameUsername != null && userWithSameUsername.id != user.id) {
-                        log.warn("Modify user info: $modifyUserDataInput failed: username already exists")
-                        ret.success = false
-                        ret.code = HttpStatus.CONFLICT.value()
-                        ret.errorMessage = "username already exists"
-                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
-                    }
-                    val userWithSameEmail = userRepo.findByEmail(modifyUserDataInput.email)
-                    if (userWithSameEmail != null && userWithSameEmail.id != user.id) {
-                        log.warn("Modify user info: $modifyUserDataInput failed: email already exists")
-                        ret.success = false
-                        ret.code = HttpStatus.CONFLICT.value()
-                        ret.errorMessage = "email already exists"
-                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
-                    }
-
-                    // delete remember-me cookie
-                    rememberMeService.logout(request, response, loginData)
-
-                    // update user info
-                    user.username = modifyUserDataInput.username
-                    user.email = modifyUserDataInput.email
-                    userRepo.save(user)
-
-                    log.info("Modify user info: $modifyUserDataInput success")
-                    ret.success = true
-                    ret.code = HttpStatus.OK.value()
-                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
-                } else {
-                    log.error("Modify user info: $modifyUserDataInput failed: user $username not found")
+                // validate username and email
+                if (!validateUsername(modifyUserData.username)) {
+                    log.warn("Modify user info: $modifyUserData failed: username length should be between 6 and 20.")
                     ret.success = false
-                    ret.code = HttpStatus.NOT_FOUND.value()
-                    ret.errorMessage = "user not found"
-                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
+                    ret.code = HttpStatus.BAD_REQUEST.value()
+                    ret.errorMessage = "Username length should be between 6 and 20."
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
                 }
-            } else {
-                log.error("Modify user info: $modifyUserDataInput failed: user not found")
+                if (!validateEmail(modifyUserData.email)) {
+                    log.warn("Modify user info failed: ${modifyUserData.email} is not a valid email address.")
+                    ret.success = false
+                    ret.code = HttpStatus.BAD_REQUEST.value()
+                    ret.errorMessage = "Invalid email format."
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
+                }
+
+                // check if username or email already exists
+                val userWithSameUsername = userRepo.findByUsername(modifyUserData.username)
+                val userWithSameEmail = userRepo.findByEmail(modifyUserData.email)
+                if (userWithSameUsername != null && userWithSameUsername.id != user.id) {
+                    log.warn("Modify user info failed: username ${modifyUserData.username} already exists.")
+                    ret.success = false
+                    ret.code = HttpStatus.CONFLICT.value()
+                    ret.errorMessage = "Username already exists."
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
+                }
+                if (userWithSameEmail != null && userWithSameEmail.id != user.id) {
+                    log.warn("Modify user info failed: email ${modifyUserData.email} already exists.")
+                    ret.success = false
+                    ret.code = HttpStatus.CONFLICT.value()
+                    ret.errorMessage = "Email already exists."
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
+                }
+
+                // update user info
+                user.username = modifyUserData.username
+                user.email = modifyUserData.email
+                userRepo.save(user)
+
+                log.info("Modify user info: success.")
+                ret.success = true
+                ret.code = HttpStatus.OK.value()
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
+            } catch (e: Exception) {
+                log.error("Modify user info failed: user not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "user not found"
+                ret.errorMessage = "User not found."
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
-            log.error("Modify user info: $modifyUserDataInput failed: $e")
+            log.error("Modify user info failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "internal server error"
+            ret.errorMessage = "Internal server error."
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -330,60 +324,51 @@ class UserController(
     ): ResponseEntity<ResponseStructure<Nothing>> {
         val ret = ResponseStructure<Nothing>()
         try {
-            val loginData = rememberMeService.autoLogin(request, response)
-            if (loginData != null) {
-                val username = (loginData.principal as User).username
-                val user = userRepo.findByUsername(username)
-                if (user != null) {
-                    // validate password
-                    if (!validatePassword(modifyPasswordData.newPassword)) {
-                        log.warn("Modify password: $modifyPasswordData failed: password length should be between 6 and 20")
-                        ret.success = false
-                        ret.code = HttpStatus.BAD_REQUEST.value()
-                        ret.errorMessage = "password length should be between 6 and 20"
-                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
-                    }
+            try {
+                val user = getCurrentUser(request, response)
 
-                    // check if old password is correct
-                    val passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
-                    if (!passwordEncoder.matches(modifyPasswordData.oldPassword, user.password)) {
-                        log.warn("Modify password: $modifyPasswordData failed: wrong password")
-                        ret.success = false
-                        ret.code = HttpStatus.UNAUTHORIZED.value()
-                        ret.errorMessage = "wrong password"
-                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.UNAUTHORIZED)
-                    }
-
-                    // delete remember-me cookie
-                    rememberMeService.logout(request, response, loginData)
-
-                    // update password
-                    user.password = passwordEncoder.encode(modifyPasswordData.newPassword)
-                    userRepo.save(user)
-
-                    log.info("Modify password: $modifyPasswordData success")
-                    ret.success = true
-                    ret.code = HttpStatus.OK.value()
-                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
-                } else {
-                    log.error("Modify password: $modifyPasswordData failed: user $username not found")
+                // validate password
+                if (!validatePassword(modifyPasswordData.newPassword)) {
+                    log.warn("Modify password failed: password length should be between 6 and 20.")
                     ret.success = false
-                    ret.code = HttpStatus.NOT_FOUND.value()
-                    ret.errorMessage = "user not found"
-                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
+                    ret.code = HttpStatus.BAD_REQUEST.value()
+                    ret.errorMessage = "Password length should be between 6 and 20."
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
                 }
-            } else {
-                log.error("Modify password: $modifyPasswordData failed: user not found")
+
+                // check if old password is correct
+                val passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
+                if (!passwordEncoder.matches(modifyPasswordData.oldPassword, user.password)) {
+                    log.warn("Modify password failed: wrong password.")
+                    ret.success = false
+                    ret.code = HttpStatus.UNAUTHORIZED.value()
+                    ret.errorMessage = "Wrong password."
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.UNAUTHORIZED)
+                }
+
+                // delete remember-me cookie
+                rememberMeService.logout(request, response, null)
+
+                // update password
+                user.password = passwordEncoder.encode(modifyPasswordData.newPassword)
+                userRepo.save(user)
+
+                log.info("Modify password success.")
+                ret.success = true
+                ret.code = HttpStatus.OK.value()
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
+            } catch (e: Exception) {
+                log.error("Modify password failed: user not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "user not found"
+                ret.errorMessage = "User not found."
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
-            log.error("Modify password: $modifyPasswordData failed: $e")
+            log.error("Modify password failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "internal server error"
+            ret.errorMessage = "Internal server error."
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -402,35 +387,31 @@ class UserController(
     ): ResponseEntity<ResponseStructure<Nothing>> {
         val ret = ResponseStructure<Nothing>()
         try {
-            val loginData = rememberMeService.autoLogin(request, response)
-            if (loginData != null) {
-                val username = (loginData.principal as User).username
-                val user = userRepo.findByUsername(username)
-                return if (user != null) {
-                    userRepo.delete(user)
-                    log.info("Delete user: $username success")
-                    ret.success = true
-                    ret.code = HttpStatus.OK.value()
-                    ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
-                } else {
-                    log.error("Delete user: $username failed: user not found")
-                    ret.success = false
-                    ret.code = HttpStatus.NOT_FOUND.value()
-                    ret.errorMessage = "user not found"
-                    ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
-                }
-            } else {
-                log.error("Delete user failed: user not found")
+            try {
+                val user = getCurrentUser(request, response)
+
+                // delete remember-me cookie
+                rememberMeService.logout(request, response, null)
+
+                // delete user
+                userRepo.delete(user)
+
+                log.info("Delete user success: ${user.id}")
+                ret.success = true
+                ret.code = HttpStatus.OK.value()
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
+            } catch (e: Exception) {
+                log.error("Delete user failed: user not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "user not found"
+                ret.errorMessage = "User not found."
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Delete user failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "internal server error"
+            ret.errorMessage = "Internal server error."
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
