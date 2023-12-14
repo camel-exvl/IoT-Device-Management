@@ -29,6 +29,12 @@ export default [
     component: './Welcome',
   },
   {
+    path: '/device/manage',
+    name: 'deviceManage',
+    icon: 'control',
+    component: './Device/Manage',
+  },
+  {
     path: '/admin',
     name: 'admin',
     icon: 'crown',
@@ -44,12 +50,6 @@ export default [
         component: './Admin',
       },
     ],
-  },
-  {
-    name: 'list.table-list',
-    icon: 'table',
-    path: '/list',
-    component: './TableList',
   },
   {
     path: '/',

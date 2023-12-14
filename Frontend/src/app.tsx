@@ -8,7 +8,7 @@ import {history, Link} from '@umijs/max';
 import defaultSettings from '../config/defaultSettings';
 import {errorConfig} from './requestErrorConfig';
 import React from 'react';
-import {current} from "@/services/swagger/User";
+import {current} from "@/services/swagger/user";
 import {AvatarDropdown, AvatarName} from "@/components/RightContent/AvatarDropdown";
 import {Avatar} from "antd";
 

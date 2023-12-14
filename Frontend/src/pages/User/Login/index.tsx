@@ -5,7 +5,7 @@ import {useEmotionCss} from '@ant-design/use-emotion-css';
 import {FormattedMessage, Helmet, SelectLang, useIntl, useModel} from '@umijs/max';
 import {Alert, message} from 'antd';
 import React, {useState} from 'react';
-import {login} from "@/services/swagger/User";
+import {login} from "@/services/swagger/user";
 import {ResponseStructure} from "@/requestErrorConfig";
 import {flushSync} from "react-dom";
 import {history} from "umi";

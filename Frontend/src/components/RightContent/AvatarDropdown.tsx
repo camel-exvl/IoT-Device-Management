@@ -7,7 +7,7 @@ import type {MenuInfo} from 'rc-menu/lib/interface';
 import React, {useCallback} from 'react';
 import {flushSync} from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
-import {logout} from "@/services/swagger/User";
+import {logout} from "@/services/swagger/user";
 
 export type GlobalHeaderRightProps = {
   menu?: boolean;

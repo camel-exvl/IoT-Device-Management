@@ -124,7 +124,7 @@ export default defineConfig({
    */
   headScripts: [
     // 解决首次加载时白屏的问题
-    {src: '/scripts/loading.js', async: true},
+    // {src: '/scripts/loading.js', async: true},
   ],
   //================ pro 插件配置 =================
   presets: ['umi-presets-pro'],
@@ -139,6 +139,7 @@ export default defineConfig({
     //   // 或者使用在线的版本
     //   // schemaPath: "https://gw.alipayobjects.com/os/antfincdn/M%24jrzTTYJN/oneapi.json"
     //   schemaPath: join(__dirname, 'api-docs.json'),
+    //   projectName: 'swagger',
     //   mock: false,
     // },
     {

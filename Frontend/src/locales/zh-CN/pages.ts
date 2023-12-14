@@ -14,6 +14,7 @@ export default {
   'pages.login.registerAccount': '注册账户',
   'pages.welcome.title': '欢迎访问『物华天宝』管理平台',
   'pages.welcome.desc': '『物华天宝』是一个物联网设备管理平台，致力于为用户提供一个综合的解决方案，用于管理、监控和维护物联网设备。',
+    'pages.loading': '加载中...',
 
   'pages.welcome.link': '欢迎使用',
   'pages.welcome.alertMessage': '更快更强的重型组件，已经发布。',
