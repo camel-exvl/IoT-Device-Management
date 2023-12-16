@@ -1,211 +1,138 @@
-import Footer from '@/components/Footer';
 import {LockOutlined, UserOutlined,} from '@ant-design/icons';
 import {LoginForm, ProFormCheckbox, ProFormText,} from '@ant-design/pro-components';
-import {useEmotionCss} from '@ant-design/use-emotion-css';
-import {FormattedMessage, Helmet, SelectLang, useIntl, useModel} from '@umijs/max';
 import {Alert, message} from 'antd';
-import React, {useState} from 'react';
-import {login} from "@/services/swagger/user";
-import {ResponseStructure} from "@/requestErrorConfig";
-import {flushSync} from "react-dom";
-import {history} from "umi";
-
-const Lang = () => {
-  const langClassName = useEmotionCss(({token}) => {
-    return {
-      width: 42,
-      height: 42,
-      lineHeight: '42px',
-      position: 'fixed',
-      right: 16,
-      borderRadius: token.borderRadius,
-      ':hover': {
-        backgroundColor: token.colorBgTextHover,
-      },
-    };
-  });
-
-  return (
-    <div className={langClassName} data-lang>
-      {SelectLang && <SelectLang/>}
-    </div>
-  );
-};
+import React, {useContext, useState} from 'react';
+import {useEmotionCss} from "@ant-design/use-emotion-css";
+import {Current, Login} from "../../../service/user.ts";
+import {LoginData} from "../../../service/typing";
+import {useNavigate} from "react-router-dom";
+import {UserInfoContext} from "../../../App.tsx";
 
 const LoginMessage: React.FC<{
-  content: string;
+    content: string;
 }> = ({content}) => {
-  return (
-    <Alert
-      style={{
-        marginBottom: 24,
-      }}
-      message={content}
-      type="error"
-      showIcon
-    />
-  );
-};
-
-const Login: React.FC = () => {
-  const [userLoginState, setUserLoginState] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const {initialState, setInitialState} = useModel('@@initialState');
-
-  const containerClassName = useEmotionCss(() => {
-    return {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      overflow: 'auto',
-      backgroundImage:
-        "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
-      backgroundSize: '100% 100%',
-    };
-  });
-
-  const intl = useIntl();
-
-  const fetchUserInfo = async () => {
-    const userInfo = await initialState?.fetchUserInfo?.();
-    if (userInfo) {
-      flushSync(() => {
-        setInitialState((s) => ({
-          ...s,
-          currentUser: userInfo,
-        }));
-      });
-    }
-  };
-
-  const handleSubmit = async (values: API.LoginData) => {
-    try {
-      const msg = (await login({...values}));
-      console.log(msg);
-      if (msg.code === 200) {
-        message.success(intl.formatMessage({id: 'pages.login.success'}));
-        await fetchUserInfo();
-        const urlParams = new URL(window.location.href).searchParams;
-        history.push(urlParams.get('redirect') || '/');
-        return;
-      }
-    } catch (error) {
-      const code = (error as ResponseStructure).code || undefined;
-      setUserLoginState('error');
-      switch (code) {
-        case 404:
-          setErrorMsg(intl.formatMessage({id: 'pages.login.userNotExist'}));
-          break;
-        case 401:
-          setErrorMsg(intl.formatMessage({id: 'pages.login.userPasswordError'}));
-          break;
-        case 500:
-          setErrorMsg(intl.formatMessage({id: 'pages.login.serverError'}));
-          break;
-        default:
-          setErrorMsg(intl.formatMessage({id: 'pages.login.failure'}));
-      }
-    }
-  }
-
-  return (
-    <div className={containerClassName}>
-      <Helmet>
-        <title>
-          {intl.formatMessage({id: 'menu.login',})}&nbsp;- {intl.formatMessage({id: 'app.title',})}
-        </title>
-      </Helmet>
-      <Lang/>
-      <div
-        style={{
-          flex: '1',
-          padding: '32px 0',
-        }}
-      >
-        <LoginForm
-          contentStyle={{
-            minWidth: 280,
-            maxWidth: '75vw',
-          }}
-          containerStyle={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          logo={<img alt="logo" src="/logo.svg"/>}
-          title={intl.formatMessage({id: 'app.title',})}
-          subTitle={intl.formatMessage({id: 'pages.layouts.userLayout.title'})}
-          initialValues={{
-            autoLogin: true,
-          }}
-          onFinish={async (values) => {
-            await handleSubmit(values as API.LoginData);
-          }}
-        >
-
-          {userLoginState === 'error' && (
-            <LoginMessage
-              content={intl.formatMessage({id: errorMsg})}
-            />
-          )}
-          {(
-            <>
-              <ProFormText
-                name="username"
-                fieldProps={{
-                  size: 'large',
-                  prefix: <UserOutlined/>,
-                }}
-                placeholder={intl.formatMessage({id: 'pages.login.username.placeholder',})}
-                rules={[
-                  {
-                    required: true,
-                    message: (
-                      <FormattedMessage id="pages.login.username.required"/>
-                    ),
-                  },
-                ]}
-              />
-              <ProFormText.Password
-                name="password"
-                fieldProps={{
-                  size: 'large',
-                  prefix: <LockOutlined/>,
-                }}
-                placeholder={intl.formatMessage({id: 'pages.login.password.placeholder',})}
-                rules={[
-                  {
-                    required: true,
-                    message: (
-                      <FormattedMessage id="pages.login.password.required"/>
-                    ),
-                  },
-                ]}
-              />
-            </>
-          )}
-
-          <div
+    return (
+        <Alert
             style={{
-              marginBottom: 24,
+                marginBottom: 24,
             }}
-          >
-            <ProFormCheckbox noStyle name="rememberMe">
-              <FormattedMessage id="pages.login.rememberMe"/>
-            </ProFormCheckbox>
-            {/*<a*/}
-            {/*  style={{*/}
-            {/*    float: 'right',*/}
-            {/*  }}*/}
-            {/*>*/}
-            {/*  <FormattedMessage id="pages.login.forgotPassword"/>*/}
-            {/*</a>*/}
-          </div>
-        </LoginForm>
-      </div>
-      <Footer/>
-    </div>
-  );
+            message={content}
+            type="error"
+            showIcon
+        />
+    );
 };
 
-export default Login;
+const LoginPage: React.FC = () => {
+        const [errorMsg, setErrorMsg] = useState<string>("");
+        const [userInfo, setUserInfo] = useContext(UserInfoContext);
+        const navigate = useNavigate();
+
+        const containerClassName = useEmotionCss(() => {
+            return {
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100vh',
+                overflow: 'auto',
+                backgroundImage:
+                    "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
+                backgroundSize: '100% 100%',
+            };
+        });
+
+        const handleSubmit = async (values: LoginData) => {
+            const {data, code} = await Login(values);
+            switch (code) {
+                case 200:
+                    setErrorMsg("");
+                    message.success('登录成功！');
+                    await Current([userInfo, setUserInfo]);
+                    navigate("/")
+                    return;
+                case 404:
+                    setErrorMsg("登录失败：用户不存在");
+                    break;
+                case 401:
+                    setErrorMsg("登录失败：密码错误");
+                    break;
+                case 500:
+                    setErrorMsg("登录失败：服务器错误");
+                    break;
+                default:
+                    setErrorMsg("登录失败，请重试");
+            }
+        }
+
+        return (
+            <div className={containerClassName}>
+                <title>
+                    登录 - 物华天宝
+                </title>
+                <div
+                    style={{
+                        flex: '1',
+                        padding: '32px 0',
+                    }}
+                >
+                    <LoginForm
+                        contentStyle={{
+                            minWidth: 280,
+                            maxWidth: '75vw',
+                        }}
+                        containerStyle={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                        logo={<img alt="logo" src="/logo.svg"/>}
+                        title="物华天宝"
+                        subTitle="联·动未来，智·控生活"
+                        initialValues={{
+                            autoLogin: true,
+                        }}
+                        onFinish={async (values) => {
+                            await handleSubmit(values as LoginData);
+                        }}
+                    >
+
+                        {errorMsg !== "" && (<LoginMessage content={errorMsg}/>)}
+                        {(
+                            <>
+                                <ProFormText
+                                    name="username"
+                                    fieldProps={{
+                                        size: 'large',
+                                        prefix: <UserOutlined/>,
+                                    }}
+                                    placeholder={"用户名："}
+                                    rules={[{required: true, message: "请输入用户名！",},]}
+                                />
+                                <ProFormText.Password
+                                    name="password"
+                                    fieldProps={{
+                                        size: 'large',
+                                        prefix: <LockOutlined/>,
+                                    }}
+                                    placeholder={"密码："}
+                                    rules={[{required: true, message: "请输入密码！",},]}
+                                />
+                            </>
+                        )}
+
+                        <div
+                            style={{
+                                marginBottom: 24,
+                            }}
+                        >
+                            <ProFormCheckbox noStyle name="rememberMe">
+                                自动登录
+                            </ProFormCheckbox>
+                        </div>
+                    </LoginForm>
+                </div>
+            </div>
+        );
+    }
+;
+
+export default LoginPage;

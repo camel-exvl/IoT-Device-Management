@@ -1,143 +1,76 @@
-import Footer from '@/components/Footer';
-import {SelectLang, Theme} from '@/components/RightContent';
-import {LinkOutlined} from '@ant-design/icons';
-import type {Settings as LayoutSettings} from '@ant-design/pro-components';
-import {SettingDrawer} from '@ant-design/pro-components';
-import type {RunTimeLayoutConfig} from '@umijs/max';
-import {history, Link} from '@umijs/max';
-import defaultSettings from '../config/defaultSettings';
-import {errorConfig} from './requestErrorConfig';
-import React from 'react';
-import {current} from "@/services/swagger/user";
-import {AvatarDropdown, AvatarName} from "@/components/RightContent/AvatarDropdown";
-import {Avatar} from "antd";
+import React, {createContext, useReducer} from "react";
+import {ConfigProvider, theme} from "antd";
+import {SmileOutlined} from "@ant-design/icons";
+import {ProLayout} from "@ant-design/pro-components";
+import {BrowserRouter, Link, Navigate, Route, Routes} from "react-router-dom";
+import Welcome from "./pages/Welcome.tsx";
+import {AvatarProps} from "./components/AvatarDropDown.tsx";
+import LoginPage from "./pages/User/Login";
+import {UserInfo} from "./service/typing";
 
-const isDev = process.env.NODE_ENV === 'development';
-const loginPath = '/user/login';
-
-/**
- * @see  https://umijs.org/zh-CN/plugins/plugin-initial-state
- * */
-export async function getInitialState(): Promise<{
-  settings?: Partial<LayoutSettings>;
-  currentUser?: API.UserInfo;
-  loading?: boolean;
-  fetchUserInfo?: () => Promise<API.UserInfo | undefined>;
-}> {
-  const fetchUserInfo = async () => {
-    try {
-      const msg = await current();
-      return msg.data as API.UserInfo;
-    } catch (error) {
-      history.push(loginPath);
-    }
-    return undefined;
-  };
-  // // 如果不是登录页面，执行
-  // const {location} = history;
-  // if (location.pathname !== loginPath) {
-  //   const currentUser = await fetchUserInfo();
-  //   return {
-  //     fetchUserInfo,
-  //     currentUser,
-  //     settings: defaultSettings as Partial<LayoutSettings>,
-  //   };
-  // }
-  return {
-    fetchUserInfo,
-    settings: defaultSettings as Partial<LayoutSettings>,
-  };
-}
-
-// ProLayout 支持的api https://procomponents.ant.design/components/layout
-export const layout: RunTimeLayoutConfig = ({initialState, setInitialState}) => {
-  return {
-    actionsRender: () => [<SelectLang key="SelectLang"/>, <Theme key="Theme"/>],
-    avatarProps: {
-      src: null,
-      title: <AvatarName/>,
-      render: (_, avatarChildren) => {
-        const {currentUser} = initialState || {};
-        if (currentUser && currentUser.username) {
-          return <><Avatar style={{backgroundColor: '#7265e6', verticalAlign: 'middle'}}
-                           size="large">{currentUser.username.substring(0, 5)}</Avatar><AvatarDropdown>{avatarChildren}</AvatarDropdown></>;
-        } else {
-          return <><Avatar style={{backgroundColor: '#7265e6', verticalAlign: 'middle'}}
-                           size="large">Guest</Avatar><AvatarDropdown>{avatarChildren}</AvatarDropdown></>;
-        }
-      },
-    },
-    waterMarkProps: {
-      content: initialState?.currentUser ? initialState.currentUser.username : 'Guest',
-    },
-    footerRender: () => <Footer/>,
-    // onPageChange: () => {
-    //   const {location} = history;
-    //   // 如果没有登录，重定向到 login
-    //   if (!initialState?.currentUser && location.pathname !== loginPath) {
-    //     history.push(loginPath);
-    //   }
-    // },
-    layoutBgImgList: [
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
-        left: 85,
-        bottom: 100,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr',
-        bottom: -68,
-        right: -45,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr',
-        bottom: 0,
-        left: 0,
-        width: '331px',
-      },
+const route = {
+    path: '/',
+    routes: [
+        {
+            path: '/welcome',
+            name: '欢迎',
+            icon: <SmileOutlined/>,
+        },
     ],
-    links: isDev
-      ? [
-        <Link key="openapi" to="/umi/plugin/openapi" target="_blank">
-          <LinkOutlined/>
-          <span>OpenAPI 文档</span>
-        </Link>,
-      ]
-      : [],
-    menuHeaderRender: undefined,
-    // 自定义 403 页面
-    // unAccessible: <div>unAccessible</div>,
-    // 增加一个 loading 的状态
-    childrenRender: (children) => {
-      // if (initialState?.loading) return <PageLoading />;
-      return (
-        <>
-          {children}
-          <SettingDrawer
-            disableUrlParams
-            enableDarkTheme
-            settings={initialState?.settings}
-            onSettingChange={(settings) => {
-              setInitialState((preInitialState) => ({
-                ...preInitialState,
-                settings,
-              }));
-            }}
-          />
-        </>
-      );
-    },
-    ...initialState?.settings,
-  };
 };
 
-/**
- * @name request 配置，可以配置错误处理
- * 它基于 axios 和 ahooks 的 useRequest 提供了一套统一的网络请求和错误处理方案。
- * @doc https://umijs.org/docs/max/request#配置
- */
-export const request = {
-  ...errorConfig,
+export const UserInfoReducer = (state: UserInfo, action: { type: string, payload: UserInfo }) => {
+    switch (action.type) {
+        case "set":
+            return action.payload;
+        default:
+            return state;
+    }
+}
+export const UserInfoContext = createContext<[UserInfo, React.Dispatch<{ type: string, payload: UserInfo }>]>([{
+    userId: "",
+    username: "never",
+    email: ""
+}, () => {
+}]);
+
+const App: React.FC = () => {
+    const [userInfo, setUserInfo] = useReducer(UserInfoReducer, {userId: "", username: "Guest", email: ""});
+    return (
+        <UserInfoContext.Provider value={[userInfo, setUserInfo]}>
+            <BrowserRouter>
+                <ConfigProvider
+                    theme={{
+                        algorithm: theme.defaultAlgorithm,
+                        token: {
+                            colorPrimary: "#7464FA",
+                            colorLink: "#7464FA",
+                            colorInfo: "#7464FA",
+                        },
+                    }}
+                >
+                    <Routes>
+                        <Route path="/user/login" element={<LoginPage/>}/>
+                        <Route path="/*" element={
+                            <ProLayout title={"物华天宝"} logo={"/logo.svg"} layout={"mix"} route={route}
+                                       fixSiderbar={true} contentWidth={"Fluid"} avatarProps={AvatarProps([userInfo, setUserInfo])}
+                                       menuItemRender={(menuItemProps, defaultDom) => {
+                                           if (menuItemProps.isUrl || !menuItemProps.path) {
+                                               return defaultDom;
+                                           }
+                                           return <Link to={menuItemProps.path}>{defaultDom}</Link>;
+                                       }}>
+                                <Routes>
+                                    <Route path="/" element={<Navigate to="/welcome"/>}/>
+                                    <Route path="/welcome" element={<Welcome/>}/>
+                                </Routes>
+                            </ProLayout>
+                        }/>
+                    </Routes>
+                </ConfigProvider>
+            </BrowserRouter>
+        </UserInfoContext.Provider>
+    );
 };
+
+export default App;
