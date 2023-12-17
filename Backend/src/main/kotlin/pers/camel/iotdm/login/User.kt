@@ -28,12 +28,12 @@ data class User(
         @Field("name")
         var name: String = "",
         @Field("type")
-        var type: DeviceType = DeviceType.OTHER,
+        var type: Short = DeviceType.OTHER.value,
         @Field("description")
         var description: String = ""
     ) {
         @Id
-        var id: String = ""
+        var id: ObjectId = ObjectId()
 
         @Field("messages")
         var messages: List<ObjectId> = listOf()

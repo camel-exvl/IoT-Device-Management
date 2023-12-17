@@ -17,7 +17,6 @@ import pers.camel.iotdm.login.utils.RememberMeService
 import org.springframework.security.core.userdetails.User as SecurityUser
 
 @RestController
-@CrossOrigin(origins = ["http://localhost:8000"])
 @RequestMapping("/api/user")
 @Tag(name = "User", description = "User management")
 class UserController(

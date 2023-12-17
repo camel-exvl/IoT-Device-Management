@@ -10,18 +10,27 @@ import org.springframework.security.web.authentication.rememberme.TokenBasedReme
 
 
 class RememberMeService : TokenBasedRememberMeServices {
-    constructor(key: String, userDetailsService: UserDetailsService) : super(key, userDetailsService) {
+
+    constructor(key: String, userDetailsService: UserDetailsService, cookieDomain: String) : super(
+        key,
+        userDetailsService
+    ) {
         super.setAlwaysRemember(true)
         super.setCookieName("remember-me")
+        super.setCookieDomain(cookieDomain)
+        super.setUseSecureCookie(false)
     }
 
     constructor(
         key: String,
         userDetailsService: UserDetailsService,
-        encodingAlgorithm: RememberMeTokenAlgorithm
+        encodingAlgorithm: RememberMeTokenAlgorithm,
+        cookieDomain: String
     ) : super(key, userDetailsService, encodingAlgorithm) {
         super.setAlwaysRemember(true)
         super.setCookieName("remember-me")
+        super.setCookieDomain(cookieDomain)
+        super.setUseSecureCookie(false)
     }
 
     override fun onLoginSuccess(

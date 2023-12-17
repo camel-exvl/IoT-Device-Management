@@ -27,6 +27,9 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter
 import org.springframework.stereotype.Service
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import pers.camel.iotdm.login.UserRepo
 import pers.camel.iotdm.login.utils.AuthenticationFilter
 import pers.camel.iotdm.login.utils.HttpRequestFilter
@@ -49,7 +52,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
             .authorizeHttpRequests { authorize ->
                 authorize
                     .requestMatchers("/api/user/login").permitAll()
-                    .requestMatchers("/api/user/create").permitAll()
+                    .requestMatchers("/api/user/register").permitAll()
                     .requestMatchers("/swagger-ui/**").permitAll()
                     .requestMatchers("api-docs/**").permitAll()
                     .anyRequest().authenticated()
@@ -57,6 +60,9 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
             // TODO: set csrf
             .csrf { csrf ->
                 csrf.disable()
+            }
+            .cors { cors ->
+                cors.configurationSource(corsConfigurationSource())
             }
             .httpBasic { basic ->
                 basic.authenticationEntryPoint { request, response, authException ->
@@ -94,6 +100,18 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
     }
 
     @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration = CorsConfiguration()
+        configuration.allowedOrigins = listOf("http://localhost:5173")
+        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        configuration.allowedHeaders = listOf("*")
+        configuration.allowCredentials = true
+        val source = UrlBasedCorsConfigurationSource()
+        source.registerCorsConfiguration("/**", configuration)
+        return source
+    }
+
+    @Bean
     fun authenticationManager(): AuthenticationManager {
         return ProviderManager(LoginAuthenticationProvider(userRepo), rememberMeAuthenticationProvider())
     }
@@ -113,6 +131,9 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
     @Value("\${rememberMe.key}")
     private lateinit var key: String
 
+    @Value("\${rememberMe.cookieDomain}")
+    private lateinit var cookieDomain: String
+
     @Bean
     fun rememberMeFilter(): RememberMeAuthenticationFilter {
         return RememberMeAuthenticationFilter(authenticationManager(), rememberMeServices())
@@ -120,7 +141,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
 
     @Bean
     fun rememberMeServices(): RememberMeService {
-        return RememberMeService(key, UserDetailsServiceImpl(userRepo))
+        return RememberMeService(key, UserDetailsServiceImpl(userRepo), cookieDomain)
     }
 
     @Bean

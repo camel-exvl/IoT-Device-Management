@@ -15,7 +15,6 @@ import pers.camel.iotdm.login.UserController
 import pers.camel.iotdm.login.UserRepo
 
 @RestController
-@CrossOrigin(origins = ["http://localhost:8000"])
 @RequestMapping("/api/device")
 @Tag(name = "device", description = "Device management")
 class DeviceController(
@@ -24,43 +23,67 @@ class DeviceController(
 ) {
     private final val log = LogFactory.getLog(UserController::class.java)
 
-    @Operation(summary = "Get all devices")
-    @GetMapping("/list")
+    data class DeviceListData(
+        val id: String,
+        val name: String,
+        val type: Short,
+        val description: String
+    )
+
+    @Operation(summary = "Search devices")
+    @GetMapping("/search")
     fun devices(
+        name: String?,
+        type: Short?,
         request: HttpServletRequest,
         response: HttpServletResponse
-    ): ResponseEntity<ResponseStructure<List<User.Device>>> {
-        val ret = ResponseStructure<List<User.Device>>()
+    ): ResponseEntity<ResponseStructure<List<DeviceListData>>> {
+        val ret = ResponseStructure<List<DeviceListData>>()
         try {
             return try {
                 val user = userController.getCurrentUser(request, response)
+                val filter = user.devices.filter {
+                    (name == null || it.name.contains(name)) &&
+                            (type == null || it.type == type)
+                }
 
                 log.info("Get all devices success: ${user.id}")
                 ret.success = true
                 ret.code = HttpStatus.OK.value()
-                ret.data = user.devices
-                ResponseEntity<ResponseStructure<List<User.Device>>>(ret, HttpStatus.OK)
+                ret.data = filter.map {
+                    DeviceListData(
+                        id = it.id.toString(),
+                        name = it.name,
+                        type = it.type,
+                        description = it.description
+                    )
+                }
+                ResponseEntity<ResponseStructure<List<DeviceListData>>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
                 log.error("Get all devices failed: User not found.")
                 ret.success = false
                 ret.code = HttpStatus.NOT_FOUND.value()
                 ret.errorMessage = "User not found."
-                ResponseEntity<ResponseStructure<List<User.Device>>>(ret, HttpStatus.NOT_FOUND)
+                ResponseEntity<ResponseStructure<List<DeviceListData>>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Get all devices failed: $e")
             ret.success = false
             ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
             ret.errorMessage = "Internal server error."
-            return ResponseEntity<ResponseStructure<List<User.Device>>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity<ResponseStructure<List<DeviceListData>>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
     data class CreateDeviceData(
         val name: String,
-        val type: Int,
-        val description: String
+        val type: Short,
+        val description: String?
     )
+
+    private fun validateDeviceType(type: Short): Boolean {
+        return type in 0..DeviceType.values().size
+    }
 
     @Operation(summary = "Create a device")
     @PostMapping("/create")
@@ -74,10 +97,18 @@ class DeviceController(
             try {
                 val user = userController.getCurrentUser(request, response)
 
+                if (!validateDeviceType(deviceData.type)) {
+                    log.error("Create device failed: Invalid device type.")
+                    ret.success = false
+                    ret.code = HttpStatus.BAD_REQUEST.value()
+                    ret.errorMessage = "Invalid device type."
+                    return ResponseEntity<ResponseStructure<User.Device>>(ret, HttpStatus.BAD_REQUEST)
+                }
+
                 val device = User.Device(
                     name = deviceData.name,
-                    type = DeviceType.values()[deviceData.type],
-                    description = deviceData.description
+                    type = deviceData.type,
+                    description = deviceData.description ?: ""
                 )
                 user.devices = user.devices.plus(device)
                 userRepo.save(user)
@@ -106,7 +137,7 @@ class DeviceController(
     data class ModifyDeviceData(
         val id: String,
         val name: String,
-        val type: Int,
+        val type: Short,
         val description: String
     )
 
@@ -122,9 +153,18 @@ class DeviceController(
             try {
                 val user = userController.getCurrentUser(request, response)
 
-                val device = user.devices.find { it.id == deviceData.id } ?: throw Exception("Device not found.")
+                if (!validateDeviceType(deviceData.type)) {
+                    log.error("Modify device failed: Invalid device type.")
+                    ret.success = false
+                    ret.code = HttpStatus.BAD_REQUEST.value()
+                    ret.errorMessage = "Invalid device type."
+                    return ResponseEntity<ResponseStructure<User.Device>>(ret, HttpStatus.BAD_REQUEST)
+                }
+
+                val device =
+                    user.devices.find { it.id.toString() == deviceData.id } ?: throw Exception("Device not found.")
                 device.name = deviceData.name
-                device.type = DeviceType.values()[deviceData.type]
+                device.type = deviceData.type
                 device.description = deviceData.description
                 userRepo.save(user)
 
@@ -161,8 +201,8 @@ class DeviceController(
             try {
                 val user = userController.getCurrentUser(request, response)
 
-                val device = user.devices.find { it.id == id } ?: throw Exception("Device not found.")
-                user.devices = user.devices.filter { it.id != id }
+                val device = user.devices.find { it.id.toString() == id } ?: throw Exception("Device not found.")
+                user.devices = user.devices.filter { it.id.toString() != id }
                 userRepo.save(user)
 
                 log.info("Delete device success: ${device.id}")
