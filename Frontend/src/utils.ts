@@ -28,3 +28,31 @@ export async function postFetcher(
     console.log(resp);
     return {data: resp.data, code: resp.code};
 }
+
+export async function putFetcher(
+    key: string,
+    //注：Record类型用于创建一个具有指定属性类型的新对象类型
+    body: string
+) {
+    const resp = (await fetch(prefix + key, {
+        credentials: "include",
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: body,
+        mode: "cors",
+    }).then((res) => res.json())) as Response<any>;
+
+    console.log(resp);
+    return {data: resp.data, code: resp.code};
+}
+
+export async function deleteFetcher(key: string) {
+    const resp = (await fetch(prefix + key, {
+        credentials: "include",
+        method: "DELETE",
+        mode: "cors",
+    }).then((res) => res.json())) as Response<any>;
+
+    console.log(resp);
+    return {data: resp.data, code: resp.code};
+}
