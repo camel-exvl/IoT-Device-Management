@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.apache.commons.logging.LogFactory
-import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
@@ -16,12 +15,31 @@ import pers.camel.iotdm.ResponseStructure
 import pers.camel.iotdm.login.utils.RememberMeService
 import org.springframework.security.core.userdetails.User as SecurityUser
 
+fun getCurrentUser(
+    request: HttpServletRequest,
+    response: HttpServletResponse,
+    userRepo: UserRepo,
+    rememberMeService: RememberMeService
+): User {
+    val data = rememberMeService.autoLogin(request, response)
+    if (data != null) {
+        val id = (data.principal as SecurityUser).username
+        val user = userRepo.findById(id)
+        return if (user.isEmpty) {
+            throw Exception("User not found")
+        } else {
+            user.get()
+        }
+    } else {
+        throw Exception("User not found")
+    }
+}
+
 @RestController
 @RequestMapping("/api/user")
 @Tag(name = "User", description = "User management")
 class UserController(
-    @Autowired val userRepo: UserRepo,
-    val rememberMeService: RememberMeService
+    @Autowired val userRepo: UserRepo, val rememberMeService: RememberMeService
 ) {
     private final val log = LogFactory.getLog(UserController::class.java)
 
@@ -45,28 +63,27 @@ class UserController(
     @Operation(summary = "Create a new user")
     @PostMapping("/register")
     fun register(@RequestBody createUserData: CreateUserData): ResponseEntity<ResponseStructure<Nothing>> {
-        val ret = ResponseStructure<Nothing>()
         try {
             // validate username, email and password
             if (!validateUsername(createUserData.username)) {
                 log.warn("Create user failed: username length should be between 6 and 20.")
-                ret.success = false
-                ret.code = HttpStatus.BAD_REQUEST.value()
-                ret.errorMessage = "Username length should be between 6 and 20."
+                val ret = ResponseStructure(
+                    false, "Username length should be between 6 and 20.", HttpStatus.BAD_REQUEST.value(), null
+                )
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
             if (!validateEmail(createUserData.email)) {
                 log.warn("Create user failed: ${createUserData.email} is not a valid email address.")
-                ret.success = false
-                ret.code = HttpStatus.BAD_REQUEST.value()
-                ret.errorMessage = "Invalid email format."
+                val ret = ResponseStructure(
+                    false, "Invalid email format.", HttpStatus.BAD_REQUEST.value(), null
+                )
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
             if (!validatePassword(createUserData.password)) {
                 log.warn("Create user failed: password length should be between 6 and 20.")
-                ret.success = false
-                ret.code = HttpStatus.BAD_REQUEST.value()
-                ret.errorMessage = "Password length should be between 6 and 20."
+                val ret = ResponseStructure(
+                    false, "Password length should be between 6 and 20.", HttpStatus.BAD_REQUEST.value(), null
+                )
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
             }
 
@@ -78,95 +95,72 @@ class UserController(
                 username = createUserData.username, email = createUserData.email, password = createUserData.password
             )
             userRepo.insert(user)
-            log.info("Create user: $user success.")
-            ret.success = true
-            ret.code = HttpStatus.CREATED.value()
+            log.debug("Create user: $user success.")
+            val ret = ResponseStructure(true, "", HttpStatus.CREATED.value(), null)
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CREATED)
         } catch (e: DuplicateKeyException) {
             val duplicateKey = e.message?.substringAfter("IoT.user index: ")?.substringBefore(" dup key")
             return if (duplicateKey != null) {
                 log.warn("Create user failed: Duplicate key: $duplicateKey. $e")
-                ret.success = false
-                ret.code = HttpStatus.CONFLICT.value()
-                ret.errorMessage = "$duplicateKey already exists."
+                val ret = ResponseStructure(
+                    false, "$duplicateKey already exists.", HttpStatus.CONFLICT.value(), null
+                )
                 ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
             } else {
                 log.error("Create user failed: $e")
-                ret.success = false
-                ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-                ret.errorMessage = "Internal server error."
+                val ret = ResponseStructure(
+                    false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+                )
                 ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
             }
         } catch (e: Exception) {
             log.error("Create user failed: $e")
-            ret.success = false
-            ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "Internal server error."
+            val ret = ResponseStructure(
+                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+            )
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
     data class LoginData(
-        var username: String = "", var password: String = "", var rememberMe: Boolean = false
+        var username: String, var password: String, var rememberMe: Boolean = false
     )
 
     @Operation(summary = "Login")
     @PostMapping("/login")
     fun login(
-        @RequestBody data: LoginData,
-        request: HttpServletRequest,
-        response: HttpServletResponse
+        @RequestBody data: LoginData, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
         val ret = ResponseStructure<Nothing>()
         return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.MOVED_PERMANENTLY)
     }
 
-    fun getCurrentUser(request: HttpServletRequest, response: HttpServletResponse): User {
-        val data = rememberMeService.autoLogin(request, response)
-        if (data != null) {
-            val id = (data.principal as SecurityUser).username
-            val user = userRepo.findById(id)
-            return if (user.isEmpty) {
-                throw Exception("User not found")
-            } else {
-                user.get()
-            }
-        } else {
-            throw Exception("User not found")
-        }
-    }
-
     data class UserInfo(
-        var userId: ObjectId = ObjectId(), var username: String = "", var email: String = ""
+        var userId: String, var username: String, var email: String
     )
 
     @Operation(summary = "Get user info")
     @GetMapping("/current")
     fun current(
-        request: HttpServletRequest,
-        response: HttpServletResponse
+        request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<UserInfo>> {
-        val ret = ResponseStructure<UserInfo>()
         try {
             return try {
-                val user = getCurrentUser(request, response)
-                ret.data = UserInfo(userId = user.id, username = user.username, email = user.email)
-                log.info("Get user info success: ${user.id}")
-                ret.success = true
-                ret.code = HttpStatus.OK.value()
+                val user = getCurrentUser(request, response, userRepo, rememberMeService)
+                log.debug("Get user info success: ${user.id}")
+                val ret = ResponseStructure<UserInfo>(true, "", HttpStatus.OK.value(), null)
+                ret.data = UserInfo(userId = user.id.toString(), username = user.username, email = user.email)
                 ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
                 log.error("Get user info failed: User not found.")
-                ret.success = false
-                ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "User not found."
+                val ret = ResponseStructure<UserInfo>(false, "User not found.", HttpStatus.NOT_FOUND.value(), null)
                 ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Get user info failed: $e")
-            ret.success = false
-            ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "Internal server error."
+            val ret = ResponseStructure<UserInfo>(
+                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+            )
             return ResponseEntity<ResponseStructure<UserInfo>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -174,8 +168,7 @@ class UserController(
     @Operation(summary = "Logout")
     @GetMapping("/logout")
     fun logout(
-        request: HttpServletRequest,
-        response: HttpServletResponse
+        request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
         val ret = ResponseStructure<Nothing>()
         return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.MOVED_PERMANENTLY)
@@ -188,27 +181,25 @@ class UserController(
     @Operation(summary = "Modify user info")
     @PutMapping("/modify")
     fun modify(
-        @RequestBody modifyUserData: ModifyUserData, request: HttpServletRequest,
-        response: HttpServletResponse
+        @RequestBody modifyUserData: ModifyUserData, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
-        val ret = ResponseStructure<Nothing>()
         try {
             try {
-                val user = getCurrentUser(request, response)
+                val user = getCurrentUser(request, response, userRepo, rememberMeService)
 
                 // validate username and email
                 if (!validateUsername(modifyUserData.username)) {
                     log.warn("Modify user info: $modifyUserData failed: username length should be between 6 and 20.")
-                    ret.success = false
-                    ret.code = HttpStatus.BAD_REQUEST.value()
-                    ret.errorMessage = "Username length should be between 6 and 20."
+                    val ret = ResponseStructure(
+                        false, "Username length should be between 6 and 20.", HttpStatus.BAD_REQUEST.value(), null
+                    )
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
                 }
                 if (!validateEmail(modifyUserData.email)) {
                     log.warn("Modify user info failed: ${modifyUserData.email} is not a valid email address.")
-                    ret.success = false
-                    ret.code = HttpStatus.BAD_REQUEST.value()
-                    ret.errorMessage = "Invalid email format."
+                    val ret = ResponseStructure(
+                        false, "Invalid email format.", HttpStatus.BAD_REQUEST.value(), null
+                    )
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
                 }
 
@@ -217,16 +208,16 @@ class UserController(
                 val userWithSameEmail = userRepo.findByEmail(modifyUserData.email)
                 if (userWithSameUsername != null && userWithSameUsername.id != user.id) {
                     log.warn("Modify user info failed: Username ${modifyUserData.username} already exists.")
-                    ret.success = false
-                    ret.code = HttpStatus.CONFLICT.value()
-                    ret.errorMessage = "Username already exists."
+                    val ret = ResponseStructure(
+                        false, "Username already exists.", HttpStatus.CONFLICT.value(), null
+                    )
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
                 }
                 if (userWithSameEmail != null && userWithSameEmail.id != user.id) {
                     log.warn("Modify user info failed: Email ${modifyUserData.email} already exists.")
-                    ret.success = false
-                    ret.code = HttpStatus.CONFLICT.value()
-                    ret.errorMessage = "Email already exists."
+                    val ret = ResponseStructure(
+                        false, "Email already exists.", HttpStatus.CONFLICT.value(), null
+                    )
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.CONFLICT)
                 }
 
@@ -235,22 +226,21 @@ class UserController(
                 user.email = modifyUserData.email
                 userRepo.save(user)
 
-                log.info("Modify user info: success.")
-                ret.success = true
-                ret.code = HttpStatus.OK.value()
+                log.debug("Modify user info: success.")
+                val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
                 log.error("Modify user info failed: User not found.")
-                ret.success = false
-                ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "User not found."
+                val ret = ResponseStructure(
+                    false, "User not found.", HttpStatus.NOT_FOUND.value(), null
+                )
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Modify user info failed: $e")
-            ret.success = false
-            ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "Internal server error."
+            val ret = ResponseStructure(
+                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+            )
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -262,20 +252,18 @@ class UserController(
     @Operation(summary = "Modify password")
     @PutMapping("/modifyPassword")
     fun modifyPassword(
-        @RequestBody modifyPasswordData: ModifyPasswordData, request: HttpServletRequest,
-        response: HttpServletResponse
+        @RequestBody modifyPasswordData: ModifyPasswordData, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
-        val ret = ResponseStructure<Nothing>()
         try {
             try {
-                val user = getCurrentUser(request, response)
+                val user = getCurrentUser(request, response, userRepo, rememberMeService)
 
                 // validate password
                 if (!validatePassword(modifyPasswordData.newPassword)) {
                     log.warn("Modify password failed: Password length should be between 6 and 20.")
-                    ret.success = false
-                    ret.code = HttpStatus.BAD_REQUEST.value()
-                    ret.errorMessage = "Password length should be between 6 and 20."
+                    val ret = ResponseStructure(
+                        false, "Password length should be between 6 and 20.", HttpStatus.BAD_REQUEST.value(), null
+                    )
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
                 }
 
@@ -283,9 +271,9 @@ class UserController(
                 val passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
                 if (!passwordEncoder.matches(modifyPasswordData.oldPassword, user.password)) {
                     log.warn("Modify password failed: Wrong password.")
-                    ret.success = false
-                    ret.code = HttpStatus.UNAUTHORIZED.value()
-                    ret.errorMessage = "Wrong password."
+                    val ret = ResponseStructure(
+                        false, "Wrong password.", HttpStatus.UNAUTHORIZED.value(), null
+                    )
                     return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.UNAUTHORIZED)
                 }
 
@@ -296,22 +284,21 @@ class UserController(
                 user.password = passwordEncoder.encode(modifyPasswordData.newPassword)
                 userRepo.save(user)
 
-                log.info("Modify password success.")
-                ret.success = true
-                ret.code = HttpStatus.OK.value()
+                log.debug("Modify password success.")
+                val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
                 log.error("Modify password failed: User not found.")
-                ret.success = false
-                ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "User not found."
+                val ret = ResponseStructure(
+                    false, "User not found.", HttpStatus.NOT_FOUND.value(), null
+                )
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Modify password failed: $e")
-            ret.success = false
-            ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "Internal server error."
+            val ret = ResponseStructure(
+                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+            )
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
@@ -319,13 +306,11 @@ class UserController(
     @Operation(summary = "Delete user")
     @DeleteMapping("/delete")
     fun delete(
-        request: HttpServletRequest,
-        response: HttpServletResponse
+        request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
-        val ret = ResponseStructure<Nothing>()
         try {
             try {
-                val user = getCurrentUser(request, response)
+                val user = getCurrentUser(request, response, userRepo, rememberMeService)
 
                 // delete remember-me cookie
                 rememberMeService.logout(request, response, null)
@@ -333,22 +318,21 @@ class UserController(
                 // delete user
                 userRepo.delete(user)
 
-                log.info("Delete user success: ${user.id}")
-                ret.success = true
-                ret.code = HttpStatus.OK.value()
+                log.debug("Delete user success: ${user.id}")
+                val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
                 log.error("Delete user failed: User not found.")
-                ret.success = false
-                ret.code = HttpStatus.NOT_FOUND.value()
-                ret.errorMessage = "User not found."
+                val ret = ResponseStructure(
+                    false, "User not found.", HttpStatus.NOT_FOUND.value(), null
+                )
                 return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
         } catch (e: Exception) {
             log.error("Delete user failed: $e")
-            ret.success = false
-            ret.code = HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ret.errorMessage = "Internal server error."
+            val ret = ResponseStructure(
+                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+            )
             return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }

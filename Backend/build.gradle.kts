@@ -7,8 +7,8 @@ plugins {
     kotlin("plugin.spring") version "1.8.22"
 }
 
-group = "pers.camelzy"
-version = "0.0.1-SNAPSHOT"
+group = "pers.camel.iotdm"
+version = "1.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17

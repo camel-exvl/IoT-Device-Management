@@ -53,6 +53,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                 authorize
                     .requestMatchers("/api/user/login").permitAll()
                     .requestMatchers("/api/user/register").permitAll()
+                    .requestMatchers("/api/message/create").permitAll()
                     .requestMatchers("/swagger-ui/**").permitAll()
                     .requestMatchers("api-docs/**").permitAll()
                     .anyRequest().authenticated()
@@ -69,10 +70,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                     response.contentType = "application/json;charset=UTF-8"
                     response.status = HttpServletResponse.SC_UNAUTHORIZED
                     val out = response.writer
-                    val ret = ResponseStructure<Nothing>()
-                    ret.success = false
-                    ret.code = HttpStatus.UNAUTHORIZED.value()
-                    ret.errorMessage = "User not logged in"
+                    val ret = ResponseStructure(false, "User not logged in", HttpStatus.UNAUTHORIZED.value(), null)
                     out.write(objectMapper.writeValueAsString(ret))
                     out.flush()
                     out.close()
@@ -86,9 +84,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
                     response.contentType = "application/json;charset=UTF-8"
                     response.status = HttpServletResponse.SC_OK
                     val out = response.writer
-                    val ret = ResponseStructure<Nothing>()
-                    ret.success = true
-                    ret.code = HttpStatus.OK.value()
+                    val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
                     out.write(objectMapper.writeValueAsString(ret))
                     out.flush()
                     out.close()
@@ -102,7 +98,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = listOf("http://localhost:5173")
+        configuration.allowedOrigins = listOf("http://localhost")
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("*")
         configuration.allowCredentials = true
@@ -158,9 +154,7 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
             response.contentType = "application/json;charset=UTF-8"
             response.status = HttpServletResponse.SC_OK
             val out = response.writer
-            val ret = ResponseStructure<Nothing>()
-            ret.success = true
-            ret.code = HttpStatus.OK.value()
+            val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
             out.write(ObjectMapper().writeValueAsString(ret))
             out.flush()
             out.close()
