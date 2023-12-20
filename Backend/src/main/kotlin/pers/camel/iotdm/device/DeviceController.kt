@@ -26,8 +26,12 @@ class DeviceController(
 ) {
     private final val log = LogFactory.getLog(DeviceController::class.java)
 
+    data class DeviceTypeData(
+        val type: Short, val num: Int
+    )
+
     data class DeviceStatistics(
-        val deviceCount: Int, val activeDeviceCount: Int, val messageCount: Int
+        val deviceCount: Int, val activeDeviceCount: Int, val messageCount: Int, val deviceType: List<DeviceTypeData>
     )
 
     @Operation(summary = "Get device statistics")
@@ -46,10 +50,11 @@ class DeviceController(
                         .get().time >= System.currentTimeMillis() - 3600000
                 }.size
             val messageCount = user.devices.sumOf { it.messages.size }
+            val deviceType = user.devices.groupBy { it.type }.map { DeviceTypeData(it.key, it.value.size) }
 
             log.debug("Get device statistics success: ${user.id}")
             val ret = ResponseStructure<DeviceStatistics>(true, "", HttpStatus.OK.value(), null)
-            ret.data = DeviceStatistics(deviceCount, activeDeviceCount, messageCount)
+            ret.data = DeviceStatistics(deviceCount, activeDeviceCount, messageCount, deviceType)
             return ResponseEntity<ResponseStructure<DeviceStatistics>>(ret, HttpStatus.OK)
         } catch (e: Exception) {
             log.error("Get device statistics failed: $e")
