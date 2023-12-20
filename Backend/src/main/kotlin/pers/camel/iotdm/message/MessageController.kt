@@ -32,7 +32,7 @@ class MessageController(
         @RequestBody message: Message, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
         return try {
-            val user = getCurrentUser(request, response, userRepo, rememberMeService)
+            val user = userRepo.findById(message.userID.toString()).get()
             val device = user.devices.find { it.id == message.deviceID }
             if (device != null) {
                 device.messages += message.id
