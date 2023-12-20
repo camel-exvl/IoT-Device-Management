@@ -1,4 +1,4 @@
-import React, {useRef} from "react";
+import React, {useContext, useRef} from "react";
 import {Button, Card, message, Popconfirm} from "antd";
 import {
     ActionType,
@@ -11,13 +11,16 @@ import {
     ProFormTextArea
 } from "@ant-design/pro-components";
 import {ProTable} from "@ant-design/pro-table/lib";
-import {CreateDevice, DeleteDevice, DeviceList, ModifyDevice} from "../../service/device.ts";
+import {CreateDevice, DeleteDevice, SearchDevice, ModifyDevice} from "../../service/device.ts";
 import {PlusOutlined} from "@ant-design/icons";
+import {UserInfoContext} from "../../app.tsx";
+import {Navigate} from "react-router-dom";
 
 const DevicePage: React.FC = () => {
     const [createModalVisible, handleModalVisible] = React.useState<boolean>(false);
     const actionRef = useRef<ActionType>();
     const [messageApi, contextHolder] = message.useMessage();
+    const [userInfo, setUserInfo] = useContext(UserInfoContext);
 
     type DeviceItem = {
         id: string;
@@ -120,6 +123,7 @@ const DevicePage: React.FC = () => {
     }
 
     return (
+        userInfo.userId === "" ? <Navigate replace to={"/user/login"} state={{from: "/device"}}/> :
         <PageContainer>
             {contextHolder}
             <Card>
@@ -127,7 +131,7 @@ const DevicePage: React.FC = () => {
                                       request={async (params, sort, filter) => {
                                           const searchName = params.name || "";
                                           const searchType = params.type || "";
-                                          const data = await DeviceList(searchName, searchType);
+                                          const data = await SearchDevice(searchName, searchType);
                                           return {
                                               data: data,
                                               success: true

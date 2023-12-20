@@ -16,3 +16,10 @@ export interface LoginData {
     password: string;
     rememberMe: boolean;
 }
+
+export interface DeviceStatistics {
+    deviceCount: number;
+    activeDeviceCount: number;
+    messageCount: number;
+    deviceType: {type: number, num: number}[];
+}

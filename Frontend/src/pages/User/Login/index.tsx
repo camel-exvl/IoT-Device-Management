@@ -5,8 +5,8 @@ import React, {useContext, useState} from 'react';
 import {useEmotionCss} from "@ant-design/use-emotion-css";
 import {Current, Login} from "../../../service/user.ts";
 import {LoginData} from "../../../service/typing";
-import {useNavigate} from "react-router-dom";
-import {UserInfoContext} from "../../../App.tsx";
+import {useLocation, useNavigate} from "react-router-dom";
+import {UserInfoContext} from "../../../app.tsx";
 
 const LoginMessage: React.FC<{
     content: string;
@@ -26,7 +26,12 @@ const LoginMessage: React.FC<{
 const LoginPage: React.FC = () => {
         const [errorMsg, setErrorMsg] = useState<string>("");
         const [userInfo, setUserInfo] = useContext(UserInfoContext);
+        const location = useLocation();
         const navigate = useNavigate();
+
+        if (location.state) {
+            message.error("请先登录！");
+        }
 
         const containerClassName = useEmotionCss(() => {
             return {
@@ -46,8 +51,8 @@ const LoginPage: React.FC = () => {
                 case 200:
                     setErrorMsg("");
                     message.success('登录成功！');
-                    await Current([userInfo, setUserInfo]);
-                    navigate("/")
+                    await Current([userInfo, setUserInfo])
+                    navigate("/welcome");
                     return;
                 case 404:
                     setErrorMsg("登录失败：用户不存在");

@@ -1,5 +1,5 @@
 import React, {useCallback} from "react";
-import {Avatar} from "antd";
+import {Avatar, message} from "antd";
 import {LoginOutlined, LogoutOutlined, SettingOutlined} from "@ant-design/icons";
 import HeaderDropdown from "./HeaderDropDown.tsx";
 import {MenuInfo} from "rc-menu/es/interface";
@@ -19,7 +19,7 @@ export const AvatarProps = (user: [UserInfo, React.Dispatch<{ type: string, payl
         src: null,
         title: userInfo?.username,
         render: (_, avatarChildren) => {
-            return <><Avatar style={{backgroundColor: '#7265e6', verticalAlign: 'middle'}}
+            return <><Avatar style={{backgroundColor: "#7464fa", verticalAlign: 'middle'}}
                              size="large">{userInfo?.username.substring(0, 5)}</Avatar><AvatarDropdown
                 user={user}>{avatarChildren}</AvatarDropdown></>;
         }
@@ -38,6 +38,8 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({user, children}) => {
                     return;
                 case 'logout':
                     Logout().then(() => setUserInfo({type: "set", payload: {userId: "", username: "Guest", email: ""}}));
+                    message.success('退出成功！');
+                    navigate('/welcome');
                     return;
                 case 'login':
                     navigate('/user/login');

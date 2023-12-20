@@ -1,9 +1,9 @@
-import React, {createContext, useReducer, useState} from "react";
+import React, {createContext, useEffect, useReducer, useState} from "react";
 import {ConfigProvider, theme} from "antd";
 import {ControlOutlined, SmileOutlined} from "@ant-design/icons";
 import {ProLayout} from "@ant-design/pro-components";
 import {BrowserRouter, Link, Navigate, Route, Routes} from "react-router-dom";
-import Welcome from "./pages/Welcome.tsx";
+import Welcome from "./pages/Welcome/Welcome.tsx";
 import {AvatarProps} from "./components/AvatarDropDown.tsx";
 import LoginPage from "./pages/User/Login";
 import {UserInfo} from "./service/typing";
@@ -43,6 +43,9 @@ export const UserInfoContext = createContext<[UserInfo, React.Dispatch<{ type: s
 const App: React.FC = () => {
     const [userInfo, setUserInfo] = useReducer(UserInfoReducer, {userId: "", username: "Guest", email: ""});
     const [pathname, setPathname] = useState(window.location.pathname);
+    useEffect(() => {
+        setPathname(window.location.pathname);
+    }, [window.location.pathname]);
     return (
         <UserInfoContext.Provider value={[userInfo, setUserInfo]}>
             <BrowserRouter>
@@ -71,7 +74,7 @@ const App: React.FC = () => {
                                            }}>{defaultDom}</Link>;
                                        }}>
                                 <Routes>
-                                    <Route path="/" element={<Navigate to="/welcome"/>}/>
+                                    <Route path="/" element={<Navigate replace to={"/welcome"}/>}/>
                                     <Route path="/welcome" element={<Welcome/>}/>
                                     <Route path="/device" element={<DevicePage/>}/>
                                 </Routes>
