@@ -1,7 +1,13 @@
 import {deleteFetcher, getFetcher, postFetcher, putFetcher} from "../utils.ts";
+import {DeviceListData} from "./typing";
 
-export const SearchDevice = async (name: string, type: number) => {
-    return getFetcher(`/device/search?name=${name}&type=${type}`);
+export const SearchDevice = async (name?: string, type?: number) => {
+    const nameFetch = name || "";
+    const typeFetch = type || "";
+    return await getFetcher(`/device/search?name=${nameFetch}&type=${typeFetch}`) as {
+        data: DeviceListData[],
+        code: number
+    };
 }
 
 export const GetDeviceStatistics = async () => {

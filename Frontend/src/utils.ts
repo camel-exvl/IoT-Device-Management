@@ -9,7 +9,7 @@ export async function getFetcher(key: string) {
     )) as Response<any>;
 
     console.log(resp);
-    return resp.data;
+    return {data: resp.data, code: resp.code};
 }
 
 export async function postFetcher(

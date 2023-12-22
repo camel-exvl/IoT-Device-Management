@@ -1,7 +1,7 @@
 import {PageContainer} from '@ant-design/pro-components';
 import {Card, Col, Row, Statistic, theme, Typography} from 'antd';
 import React, {useContext, useEffect, useState} from 'react';
-import {ApiOutlined, ClusterOutlined, LineChartOutlined} from "@ant-design/icons";
+import {ApiOutlined, ClusterOutlined, BarChartOutlined} from "@ant-design/icons";
 import {UserInfoContext} from "../../app.tsx";
 import {Link} from "react-router-dom";
 import Title from "antd/es/typography/Title";
@@ -39,12 +39,12 @@ const Welcome: React.FC = () => {
             if (userInfo.userId !== "") {
                 setDeviceStatisticsLoading(true);
                 GetDeviceStatistics().then((res) => {
-                    setDeviceStatistics(res);
+                    setDeviceStatistics(res.data);
 
                     // convert deviceStatistics.deviceType type to string
                     const deviceType = [] as { type: string, num: number }[];
-                    for (const type in res.deviceType) {
-                        deviceType.push({type: DeviceType.get(parseInt(type)) || "", num: res.deviceType[type].num});
+                    for (const type in res.data.deviceType) {
+                        deviceType.push({type: DeviceType.get(parseInt(type)) || "", num: res.data.deviceType[type].num});
                     }
                     setDeviceType(deviceType);
                     console.log(deviceType);
@@ -131,7 +131,7 @@ const Welcome: React.FC = () => {
                                         value={deviceStatistics?.messageCount}
                                         loading={deviceStatisticsLoading}
                                         valueStyle={{color: token.colorPrimary}}
-                                        prefix={<LineChartOutlined/>}
+                                        prefix={<BarChartOutlined/>}
                                         suffix={"条"}
                                     />
                                 </Card>
@@ -162,7 +162,7 @@ const Welcome: React.FC = () => {
                                     style: {fontSize: '32px', lineHeight: '1.5',},
                                     customHtml: (container, view, datum, data) => {
                                         const {width} = container.getBoundingClientRect();
-                                        const text = datum ? `${datum.num} 台` : `${data.reduce((r, d) => r + d.num, 0)} 台`;
+                                        const text = datum ? `${datum.num} 台` : `${data?.reduce((r, d) => r + d.num, 0)} 台`;
                                         return renderStatistic(width, text, {fontSize: 32,});
                                     },
                                 },

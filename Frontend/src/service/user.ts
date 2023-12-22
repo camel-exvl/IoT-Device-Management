@@ -6,8 +6,8 @@ export const Current = async (user: [UserInfo, React.Dispatch<{ type: string, pa
     const [userInfo, setUserInfo] = user
 
     getFetcher(`/user/current`).then((data) => {
-        if (data !== undefined && data !== null && data.username !== userInfo?.username) {
-            setUserInfo({type: "set", payload: data});
+        if (data.data !== undefined && data.data !== null && data.data.username !== userInfo?.username) {
+            setUserInfo({type: "set", payload: data.data});
         }
         return data;
     });

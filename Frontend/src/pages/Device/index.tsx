@@ -1,4 +1,4 @@
-import React, {useContext, useRef} from "react";
+import React, {useRef} from "react";
 import {Button, Card, message, Popconfirm} from "antd";
 import {
     ActionType,
@@ -11,25 +11,18 @@ import {
     ProFormTextArea
 } from "@ant-design/pro-components";
 import {ProTable} from "@ant-design/pro-table/lib";
-import {CreateDevice, DeleteDevice, SearchDevice, ModifyDevice} from "../../service/device.ts";
+import {CreateDevice, DeleteDevice, ModifyDevice, SearchDevice} from "../../service/device.ts";
 import {PlusOutlined} from "@ant-design/icons";
-import {UserInfoContext} from "../../app.tsx";
-import {Navigate} from "react-router-dom";
+import {DeviceListData} from "../../service/typing";
+import {useNavigate} from "react-router-dom";
 
 const DevicePage: React.FC = () => {
     const [createModalVisible, handleModalVisible] = React.useState<boolean>(false);
     const actionRef = useRef<ActionType>();
     const [messageApi, contextHolder] = message.useMessage();
-    const [userInfo, setUserInfo] = useContext(UserInfoContext);
+    const navigate = useNavigate();
 
-    type DeviceItem = {
-        id: string;
-        name: string;
-        type: string;
-        description: string;
-    };
-
-    const columns: ProColumns<DeviceItem>[] = [
+    const columns: ProColumns<DeviceListData>[] = [
         {
             dataIndex: 'index',
             valueType: 'index',
@@ -123,38 +116,41 @@ const DevicePage: React.FC = () => {
     }
 
     return (
-        userInfo.userId === "" ? <Navigate replace to={"/user/login"} state={{from: "/device"}}/> :
         <PageContainer>
             {contextHolder}
             <Card>
-                <ProTable<DeviceItem> columns={columns} actionRef={actionRef}
-                                      request={async (params, sort, filter) => {
-                                          const searchName = params.name || "";
-                                          const searchType = params.type || "";
-                                          const data = await SearchDevice(searchName, searchType);
-                                          return {
-                                              data: data,
-                                              success: true
-                                          };
-                                      }} rowKey="id" search={{labelWidth: "auto",}} pagination={{pageSize: 10,}}
-                                      dateFormatter="string" headerTitle="设备列表"
-                                      editable={{
-                                          type: 'multiple',
-                                          actionRender: (row, config, dom) => [dom.save, dom.cancel],
-                                          onSave: async (key, row) => {
-                                              const data = await ModifyDevice(row.id, row.name, +row.type, row.description);
-                                              if (data.code === 200) {
-                                                  successMessage("修改成功");
-                                                  if (actionRef.current) {
-                                                      actionRef.current.reload();
-                                                  }
+                <ProTable<DeviceListData> columns={columns} actionRef={actionRef}
+                                          request={async (params, sort, filter) => {
+                                              const searchName = params.name;
+                                              const searchType = params.type;
+                                              const res = await SearchDevice(searchName, searchType);
+                                              if (res.code === 401) {
+                                                  navigate("/user/login", {replace: true, state: {from: "/device"}});
                                               }
-                                          },
-                                      }}
-                                      toolBarRender={() => [<Button key="button" icon={<PlusOutlined/>} onClick={() => {
-                                          handleModalVisible(true);
-                                      }} type="primary">新建</Button>,]}
-                                      options={{fullScreen: false, reload: true, density: false, setting: false}}/>
+                                              return {
+                                                  data: res.data,
+                                                  success: true
+                                              };
+                                          }} rowKey="id" search={{labelWidth: "auto",}} pagination={{pageSize: 10,}}
+                                          dateFormatter="string" headerTitle="设备列表"
+                                          editable={{
+                                              type: 'multiple',
+                                              actionRender: (row, config, dom) => [dom.save, dom.cancel],
+                                              onSave: async (key, row) => {
+                                                  const data = await ModifyDevice(row.id, row.name, +row.type, row.description);
+                                                  if (data.code === 200) {
+                                                      successMessage("修改成功");
+                                                      if (actionRef.current) {
+                                                          actionRef.current.reload();
+                                                      }
+                                                  }
+                                              },
+                                          }}
+                                          toolBarRender={() => [<Button key="button" icon={<PlusOutlined/>}
+                                                                        onClick={() => {
+                                                                            handleModalVisible(true);
+                                                                        }} type="primary">新建</Button>,]}
+                                          options={{fullScreen: false, reload: true, density: false, setting: false}}/>
                 <ModalForm
                     title="新建设备"
                     open={createModalVisible}

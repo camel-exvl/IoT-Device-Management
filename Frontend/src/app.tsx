@@ -1,6 +1,6 @@
 import React, {createContext, useEffect, useReducer, useState} from "react";
 import {ConfigProvider, theme} from "antd";
-import {ControlOutlined, SmileOutlined} from "@ant-design/icons";
+import {BarChartOutlined, ControlOutlined, SmileOutlined, UserOutlined} from "@ant-design/icons";
 import {ProLayout} from "@ant-design/pro-components";
 import {BrowserRouter, Link, Navigate, Route, Routes} from "react-router-dom";
 import Welcome from "./pages/Welcome/Welcome.tsx";
@@ -8,6 +8,7 @@ import {AvatarProps} from "./components/AvatarDropDown.tsx";
 import LoginPage from "./pages/User/Login";
 import {UserInfo} from "./service/typing";
 import DevicePage from "./pages/Device";
+import MessagePage from "./pages/Message";
 
 const route = {
     path: '/',
@@ -18,9 +19,19 @@ const route = {
             icon: <SmileOutlined/>,
         },
         {
+            path: '/user/settings',
+            name: '个人中心',
+            icon: <UserOutlined/>,
+        },
+        {
             path: '/device',
             name: '设备管理',
             icon: <ControlOutlined/>,
+        },
+        {
+            path: '/message',
+            name: '上报数据',
+            icon: <BarChartOutlined/>,
         }
     ],
 };
@@ -77,6 +88,7 @@ const App: React.FC = () => {
                                     <Route path="/" element={<Navigate replace to={"/welcome"}/>}/>
                                     <Route path="/welcome" element={<Welcome/>}/>
                                     <Route path="/device" element={<DevicePage/>}/>
+                                    <Route path="/message" element={<MessagePage/>}/>
                                 </Routes>
                             </ProLayout>
                         }/>

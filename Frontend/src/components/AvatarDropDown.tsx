@@ -1,6 +1,6 @@
 import React, {useCallback} from "react";
 import {Avatar, message} from "antd";
-import {LoginOutlined, LogoutOutlined, SettingOutlined} from "@ant-design/icons";
+import {LoginOutlined, LogoutOutlined, UserOutlined} from "@ant-design/icons";
 import HeaderDropdown from "./HeaderDropDown.tsx";
 import {MenuInfo} from "rc-menu/es/interface";
 import {Current, Logout} from "../service/user.ts";
@@ -20,7 +20,7 @@ export const AvatarProps = (user: [UserInfo, React.Dispatch<{ type: string, payl
         title: userInfo?.username,
         render: (_, avatarChildren) => {
             return <><Avatar style={{backgroundColor: "#7464fa", verticalAlign: 'middle'}}
-                             size="large">{userInfo?.username.substring(0, 5)}</Avatar><AvatarDropdown
+                             size="large">{userInfo?.username[0].toUpperCase()}</Avatar><AvatarDropdown
                 user={user}>{avatarChildren}</AvatarDropdown></>;
         }
     };
@@ -37,7 +37,10 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({user, children}) => {
                     navigate('/user/settings');
                     return;
                 case 'logout':
-                    Logout().then(() => setUserInfo({type: "set", payload: {userId: "", username: "Guest", email: ""}}));
+                    Logout().then(() => setUserInfo({
+                        type: "set",
+                        payload: {userId: "", username: "Guest", email: ""}
+                    }));
                     message.success('退出成功！');
                     navigate('/welcome');
                     return;
@@ -53,8 +56,8 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({user, children}) => {
         ...(userInfo?.username === "Guest" ? [] : [
             {
                 key: 'settings',
-                icon: <SettingOutlined/>,
-                label: '个人设置',
+                icon: <UserOutlined/>,
+                label: '个人中心',
             },
             {
                 type: 'divider' as const,

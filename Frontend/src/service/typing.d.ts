@@ -23,3 +23,25 @@ export interface DeviceStatistics {
     messageCount: number;
     deviceType: {type: number, num: number}[];
 }
+
+export interface DeviceListData {
+    id: string,
+    name: string,
+    type: number,
+    description: string,
+}
+
+export interface MessageListData {
+    id: string,
+    info: string,
+    value: number;
+    alert: boolean;
+    lng: number;
+    lat: number;
+    time: number;
+}
+
+export interface MessageList {
+    total: number;
+    messages: MessageListData[];
+}
