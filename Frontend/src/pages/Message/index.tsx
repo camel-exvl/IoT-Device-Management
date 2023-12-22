@@ -1,21 +1,28 @@
-import React, {useContext, useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {ActionType, PageContainer, ProColumns} from "@ant-design/pro-components";
 import {Button, Card, message, Popconfirm, Select, Space, Table} from "antd";
-import {UserInfoContext} from "../../app.tsx";
 import {ProTable} from "@ant-design/pro-table/lib";
 import {SearchDevice} from "../../service/device.ts";
 import {DeleteAllMessage, DeleteBulkMessage, GetMessageList} from "../../service/message.ts";
 import {MessageListData} from "../../service/typing";
 import {useNavigate} from "react-router-dom";
 import {DeleteOutlined} from "@ant-design/icons";
+import {Map, Polyline} from '@pansy/react-amap';
+import {Loca, ScatterLayer, useLoca} from '@pansy/react-amap-loca';
+import Title from "antd/es/typography/Title";
 
 const MessagePage: React.FC = () => {
     const actionRef = useRef<ActionType>();
+    const map = useRef<AMap.Map>();
+    const polyline = useRef<AMap.Polyline>();
     const [deviceListLoading, setDeviceListLoading] = useState(true);
     const [deviceList, setDeviceList] = useState([] as { label: string, value: string }[]);
     const [deviceSelected, setDeviceSelected] = useState("");
     const [messageApi, contextHolder] = message.useMessage();
-    const [userInfo, setUserInfo] = useContext(UserInfoContext);
+    const [geoJSONCollectionAlert, setGeoJSONCollectionAlert] = useState({});
+    const [geoJSONCollectionNoAlert, setGeoJSONCollectionNoAlert] = useState({});
+    const [geoCenter, setGeoCenter] = useState<AMap.LocationValue>([120.21201, 30.2084]);
+    const [geoPath, setGeoPath] = useState<AMap.LocationValue[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -104,6 +111,105 @@ const MessagePage: React.FC = () => {
         },
     ];
 
+    const convertToGeoJSON = (message: MessageListData) => {
+        const {lng, lat, id, info, value, alert, time} = message;
+        return {
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [lng, lat],
+            },
+            properties: {
+                id: id,
+                info: info,
+                value: value,
+                alert: alert,
+                time: time,
+            },
+        };
+    };
+
+    const Scatter = () => {
+        const {loca} = useLoca();
+        const [scatterRed, setScatterRed] = useState<Loca.ScatterLayer>();
+        const [scatterYellow, setScatterYellow] = useState<Loca.ScatterLayer>();
+
+        useEffect(() => {
+            if (scatterRed && scatterYellow && loca) {
+                const geoRed = new window.Loca.GeoJSONSource({
+                    data: geoJSONCollectionAlert,
+                });
+                scatterRed.setSource(geoRed);
+                scatterRed.setStyle({
+                    unit: 'meter',
+                    size: [5000, 5000],
+                    borderWidth: 0,
+                    texture: 'https://a.amap.com/Loca/static/loca-v2/demos/images/breath_red.png',
+                    duration: 500,
+                    animate: true,
+                });
+                loca.add(scatterRed);
+
+                const geoYellow = new window.Loca.GeoJSONSource({
+                    data: geoJSONCollectionNoAlert,
+                });
+                scatterYellow.setSource(geoYellow);
+                scatterYellow.setStyle({
+                    unit: 'meter',
+                    size: [3000, 3000],
+                    borderWidth: 0,
+                    texture: 'https://a.amap.com/Loca/static/loca-v2/demos/images/breath_yellow.png',
+                    duration: 1000,
+                    animate: true,
+                });
+                loca.add(scatterYellow);
+
+                loca.animate.start();
+            }
+        }, [scatterRed, scatterYellow, loca])
+
+        return (
+            <>
+                <ScatterLayer
+                    zIndex={113}
+                    opacity={1}
+                    visible={true}
+                    zooms={[2, 22]}
+                    events={{
+                        created: (instance) => {
+                            setScatterRed(instance);
+                        }
+                    }}
+                />
+                <ScatterLayer
+                    zIndex={112}
+                    opacity={1}
+                    visible={true}
+                    zooms={[2, 22]}
+                    events={{
+                        created: (instance) => {
+                            setScatterYellow(instance);
+                        }
+                    }}
+                />
+            </>
+        )
+    }
+
+
+    useEffect(() => {
+        if (map.current) {
+            map.current.setCenter(geoCenter);
+        }
+    }, [geoCenter]);
+
+    useEffect(() => {
+        console.log(geoPath,polyline);
+        if (polyline.current && geoPath.length > 0) {
+            polyline.current.setPath(geoPath);
+        }
+    }, [geoPath]);
+
     return (
         <PageContainer>
             {contextHolder}
@@ -122,6 +228,20 @@ const MessagePage: React.FC = () => {
                             };
                         }
                         const res = await GetMessageList(deviceSelected, (params.current ?? 1) - 1, params.pageSize ?? 10);
+                        setGeoCenter([res.data.messages[0].lng, res.data.messages[0].lat]);
+                        const geoPath = res.data.messages.map((message) => [message.lng, message.lat] as AMap.LocationValue);
+                        setGeoPath(geoPath)
+                        const geoJSONFeatures = res.data.messages.map(convertToGeoJSON);
+                        const geoJSONCollectionAlert = {
+                            type: 'FeatureCollection',
+                            features: geoJSONFeatures.filter((feature) => feature.properties.alert),
+                        };
+                        const geoJSONCollectionNoAlert = {
+                            type: 'FeatureCollection',
+                            features: geoJSONFeatures.filter((feature) => !feature.properties.alert),
+                        };
+                        setGeoJSONCollectionAlert(geoJSONCollectionAlert);
+                        setGeoJSONCollectionNoAlert(geoJSONCollectionNoAlert);
                         return {
                             data: res.data.messages,
                             success: true,
@@ -147,7 +267,7 @@ const MessagePage: React.FC = () => {
                         return (
                             <Space size={16}>
                                 <Popconfirm title={"确定删除选中的消息吗？"} onConfirm={() => {
-                                    DeleteBulkMessage(deviceSelected,props.selectedRowKeys as string[]).then((res) => {
+                                    DeleteBulkMessage(deviceSelected, props.selectedRowKeys as string[]).then((res) => {
                                         if (res.code === 200) {
                                             messageApi.success("删除成功");
                                             if (actionRef.current) {
@@ -178,15 +298,31 @@ const MessagePage: React.FC = () => {
                                     messageApi.error("删除失败");
                                 }
                             });
-
                         }}>
                             <Button key="button" icon={<DeleteOutlined/>} disabled={deviceSelected === ""}
                                     type="primary">删除本设备所有消息</Button>
                         </Popconfirm>]}
                     options={{fullScreen: false, reload: true, density: false, setting: false}}/>
             </Card>
+            <Title level={4} style={{marginTop: 24}}>历史轨迹</Title>
+            <Card>
+                <div style={{height: 500}}>
+                    <Map
+                        ref={map} zoom={11} Loca={{}} center={geoCenter} pitch={40}
+                        // normal, light, whitesmoke, macaron
+                        mapStyle="amap://styles/light" viewMode="3D"
+                        WebGLParams={{
+                            preserveDrawingBuffer: undefined
+                        }}>
+                        <Loca>
+                            {geoPath.length > 0 &&
+                                <Polyline path={geoPath} ref={polyline}/>}
+                            <Scatter/>
+                        </Loca>
+                    </Map>
+                </div>
+            </Card>
         </PageContainer>
     );
 }
-
 export default MessagePage;

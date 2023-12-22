@@ -1495,6 +1495,56 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@pansy/amap-api-loader@0.4.7":
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/@pansy/amap-api-loader/-/amap-api-loader-0.4.7.tgz#de56badb7435aae4ab2d6dbc40e3587268c3148a"
+  integrity sha512-1uroKXT+j3hc52FpBGqbVx8thzyuTC+GvtZat8tNyu88Kxz388XBH6TNfT/NeOsMFdVNud10yzlobE38J8pGHQ==
+  dependencies:
+    "@pansy/amap-types" "2.19.1"
+
+"@pansy/amap-types@2.19.1":
+  version "2.19.1"
+  resolved "https://registry.yarnpkg.com/@pansy/amap-types/-/amap-types-2.19.1.tgz#c9facfd649ba83e02d647478d01c2e23ccb9eee2"
+  integrity sha512-rq0YiNfwBHU7K/hqrcEtZHIrW+vapcaUfAAyvPRz7BQCdiRdDoOx6Oqgo2C2p/sk15mqsC9MVKURKvRf73Soow==
+
+"@pansy/react-amap-core@1.3.11":
+  version "1.3.11"
+  resolved "https://registry.yarnpkg.com/@pansy/react-amap-core/-/react-amap-core-1.3.11.tgz#afedd60e65ec1bdf81c2762cc2e9f267eb64ae92"
+  integrity sha512-APSHBmZ2VBwah67cJPPb9A8eDg39c6nQxyNmnKrdp/GV+sSYFmrRkahKsr19WoP/gGB9kHFd7kCh19kKGm22yQ==
+  dependencies:
+    "@pansy/amap-types" "2.19.1"
+
+"@pansy/react-amap-loca@^0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@pansy/react-amap-loca/-/react-amap-loca-0.1.4.tgz#9e1c7778e71106eb694172895be0b68da2118f1c"
+  integrity sha512-ayFLoa7YPh/Ii1i/ujIHg5L6JhDsYalzifpJI04LfdOzN9YHpiRgSno725k9nyXjAt07oACij26T6lc+jnx5NQ==
+  dependencies:
+    "@pansy/amap-types" "2.19.1"
+    "@pansy/react-amap-core" "1.3.11"
+
+"@pansy/react-amap-ui@^2.1.20":
+  version "2.1.20"
+  resolved "https://registry.yarnpkg.com/@pansy/react-amap-ui/-/react-amap-ui-2.1.20.tgz#61804b8e6afd81f136141aeb951e6ac1f9f3a167"
+  integrity sha512-POVfrq6y0/60YUC8W/n6gYww+WyhwR08AuhvDABNUMSkPBT7voRkRdGgFsvPFSSPt+xIYVSZuK+X0Io9I4XuBQ==
+  dependencies:
+    "@pansy/amap-types" "2.19.1"
+    "@pansy/react-amap-core" "1.3.11"
+
+"@pansy/react-amap@^2.18.1":
+  version "2.18.1"
+  resolved "https://registry.yarnpkg.com/@pansy/react-amap/-/react-amap-2.18.1.tgz#f8a8578f7c368df81e1fb1d24f1761e99d59fb3b"
+  integrity sha512-3AuZd5EHSOdUehVZqR6kk6NB0fC6RRVF3ntzRbrjxWbNsjrJGJNAcqnnIu6WJKv6Vrr2EbfyeCJ2dAwWZ77RHw==
+  dependencies:
+    "@pansy/amap-api-loader" "0.4.7"
+    "@pansy/amap-types" "2.19.1"
+    "@pansy/react-amap-core" "1.3.11"
+    "@pansy/use-portal" "^0.2.0"
+
+"@pansy/use-portal@^0.2.0":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@pansy/use-portal/-/use-portal-0.2.1.tgz#f56eddfc294a7e790619926f5bac3946d068bfad"
+  integrity sha512-DdQLHxVbYsQP0iOlV09G2QlvQv47tr81NUBaPWesT1E8+/C2LeRUg8+WSf9JIzph3rBOxzx1FENpvy7gp33frw==
+
 "@polka/url@^1.0.0-next.20":
   version "1.0.0-next.24"
   resolved "https://registry.yarnpkg.com/@polka/url/-/url-1.0.0-next.24.tgz#58601079e11784d20f82d0585865bb42305c4df3"
