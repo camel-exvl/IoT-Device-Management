@@ -118,38 +118,41 @@ class DeviceController(
     fun create(
         @RequestBody deviceData: CreateDeviceData, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
-        try {
+        synchronized(this) {
             try {
-                val user = getCurrentUser(request, response, userRepo, rememberMeService)
+                try {
 
-                if (!validateDeviceType(deviceData.type)) {
-                    log.warn("Create device failed: Invalid device type.")
-                    val ret = ResponseStructure(
-                        false, "Invalid device type.", HttpStatus.BAD_REQUEST.value(), null
+                    val user = getCurrentUser(request, response, userRepo, rememberMeService)
+
+                    if (!validateDeviceType(deviceData.type)) {
+                        log.warn("Create device failed: Invalid device type.")
+                        val ret = ResponseStructure(
+                            false, "Invalid device type.", HttpStatus.BAD_REQUEST.value(), null
+                        )
+                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
+                    }
+
+                    val device = User.Device(
+                        name = deviceData.name, type = deviceData.type, description = deviceData.description ?: ""
                     )
-                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
+                    user.devices = user.devices.plus(device)
+                    userRepo.save(user)
+
+                    log.debug("Create device success: ${user.id}")
+                    val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
+                } catch (e: Exception) {
+                    log.error("Create device failed: User not found.")
+                    val ret = ResponseStructure(false, "User not found.", HttpStatus.NOT_FOUND.value(), null)
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
                 }
-
-                val device = User.Device(
-                    name = deviceData.name, type = deviceData.type, description = deviceData.description ?: ""
-                )
-                user.devices = user.devices.plus(device)
-                userRepo.save(user)
-
-                log.debug("Create device success: ${user.id}")
-                val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
-                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
-                log.error("Create device failed: User not found.")
-                val ret = ResponseStructure(false, "User not found.", HttpStatus.NOT_FOUND.value(), null)
-                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
+                log.error("Create device failed: $e")
+                val ret = ResponseStructure(
+                    false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+                )
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
             }
-        } catch (e: Exception) {
-            log.error("Create device failed: $e")
-            val ret = ResponseStructure(
-                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
-            )
-            return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
@@ -162,35 +165,38 @@ class DeviceController(
     fun modify(
         @RequestBody deviceData: ModifyDeviceData, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
-        try {
+        synchronized(this) {
             try {
-                val user = getCurrentUser(request, response, userRepo, rememberMeService)
+                try {
+                    val user = getCurrentUser(request, response, userRepo, rememberMeService)
 
-                if (!validateDeviceType(deviceData.type)) {
-                    log.warn("Modify device failed: Invalid device type.")
-                    val ret = ResponseStructure(false, "Invalid device type.", HttpStatus.BAD_REQUEST.value(), null)
-                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
+                    if (!validateDeviceType(deviceData.type)) {
+                        log.warn("Modify device failed: Invalid device type.")
+                        val ret = ResponseStructure(false, "Invalid device type.", HttpStatus.BAD_REQUEST.value(), null)
+                        return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.BAD_REQUEST)
+                    }
+
+                    val device =
+                        user.devices.find { it.id.toString() == deviceData.id } ?: throw Exception("Device not found.")
+                    device.name = deviceData.name
+                    device.type = deviceData.type
+                    device.description = deviceData.description
+                    userRepo.save(user)
+
+                    log.debug("Modify device success: ${device.id}")
+                    val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
+                } catch (e: Exception) {
+                    log.error("Modify device failed: $e")
+                    val ret = ResponseStructure(false, e.message ?: "Not found.", HttpStatus.NOT_FOUND.value(), null)
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
                 }
-
-                val device =
-                    user.devices.find { it.id.toString() == deviceData.id } ?: throw Exception("Device not found.")
-                device.name = deviceData.name
-                device.type = deviceData.type
-                device.description = deviceData.description
-                userRepo.save(user)
-
-                log.debug("Modify device success: ${device.id}")
-                val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
-                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
             } catch (e: Exception) {
                 log.error("Modify device failed: $e")
-                val ret = ResponseStructure(false, e.message ?: "Not found.", HttpStatus.NOT_FOUND.value(), null)
-                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
+                val ret =
+                    ResponseStructure(false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null)
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
             }
-        } catch (e: Exception) {
-            log.error("Modify device failed: $e")
-            val ret = ResponseStructure(false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null)
-            return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 

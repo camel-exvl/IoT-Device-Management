@@ -31,31 +31,35 @@ class MessageController(
     fun create(
         @RequestBody message: Message, request: HttpServletRequest, response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<Nothing>> {
-        return try {
-            val user = userRepo.findById(message.userID.toString()).get()
-            val device = user.devices.find { it.id == message.deviceID }
-            if (device != null) {
-                device.messages += message.id
-                userRepo.save(user)
-            } else {
-                val ret = ResponseStructure(false, "Device not found.", HttpStatus.NOT_FOUND.value(), null)
-                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
-            }
+        synchronized(this) {
+            return try {
+                val user = userRepo.findById(message.userID.toString()).get()
+                val device = user.devices.find { it.id == message.deviceID }
+                if (device != null) {
+                    device.messages += message.id
+                    userRepo.save(user)
+                } else {
+                    log.warn("Create message error: Device not found.")
+                    val ret = ResponseStructure(false, "Device not found.", HttpStatus.NOT_FOUND.value(), null)
+                    return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
+                }
 
-            messageRepo.insert(message)
-            log.debug("Create message success.")
-            val ret = ResponseStructure(true, "", HttpStatus.CREATED.value(), null)
-            ResponseEntity(ret, HttpStatus.CREATED)
-        } catch (e: Exception) {
-            log.error("Create message failed: $e")
-            val ret = ResponseStructure(
-                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
-            )
-            ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+                messageRepo.insert(message)
+                log.debug("Create message success.")
+                val ret = ResponseStructure(true, "", HttpStatus.CREATED.value(), null)
+                ResponseEntity(ret, HttpStatus.CREATED)
+            } catch (e: Exception) {
+                log.error("Create message failed: $e")
+                val ret = ResponseStructure(
+                    false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+                )
+                ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+            }
         }
     }
 
     data class MessageListData(
+        val id: String,
         val info: String,
         val value: Long,
         val alert: Boolean,
@@ -79,7 +83,7 @@ class MessageController(
             val pageable = Pageable.ofSize(pageSize).withPage(pageNum)
             val messages = messageRepo.findAllByDeviceID(ObjectId(deviceID), pageable)
             val messageListData = messages.map {
-                MessageListData(it.info, it.value, it.alert, it.lng, it.lat, it.time)
+                MessageListData(it.id.toString(), it.info, it.value, it.alert, it.lng, it.lat, it.time)
             }
             log.debug("Get message list success.")
             val ret = ResponseStructure(
@@ -100,8 +104,8 @@ class MessageController(
     }
 
     @Operation(summary = "Delete all messages of a device")
-    @DeleteMapping("/delete")
-    fun delete(
+    @DeleteMapping("/delete/all")
+    fun deleteAll(
         @RequestParam("deviceID") deviceID: String,
         request: HttpServletRequest,
         response: HttpServletResponse
@@ -121,6 +125,40 @@ class MessageController(
                 val ret = ResponseStructure(false, "Device not found.", HttpStatus.NOT_FOUND.value(), null)
                 ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
             }
+        } catch (e: Exception) {
+            log.error("Delete messages failed: $e")
+            val ret = ResponseStructure(
+                false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
+            )
+            ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
+
+    @Operation(summary = "Delete bulk messages")
+    @DeleteMapping("/delete/bulk")
+    fun deleteBulk(
+        @RequestParam("deviceID") deviceID: String,
+        @RequestParam("messageID") messageID: List<String>,
+        request: HttpServletRequest,
+        response: HttpServletResponse
+    ): ResponseEntity<ResponseStructure<Nothing>> {
+        return try {
+            val user = getCurrentUser(request, response, userRepo, rememberMeService)
+            val device = user.devices.find { it.id == ObjectId(deviceID) }
+            if (device != null) {
+                messageID.forEach {
+                    device.messages -= ObjectId(it)
+                }
+                userRepo.save(user)
+            } else {
+                log.warn("Delete messages failed: device not found.")
+                val ret = ResponseStructure(false, "Device not found.", HttpStatus.NOT_FOUND.value(), null)
+                return ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.NOT_FOUND)
+            }
+            messageRepo.deleteAllById(messageID)
+            log.debug("Delete messages success.")
+            val ret = ResponseStructure(true, "", HttpStatus.OK.value(), null)
+            ResponseEntity<ResponseStructure<Nothing>>(ret, HttpStatus.OK)
         } catch (e: Exception) {
             log.error("Delete messages failed: $e")
             val ret = ResponseStructure(
