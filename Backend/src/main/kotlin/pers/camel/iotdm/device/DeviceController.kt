@@ -10,11 +10,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pers.camel.iotdm.ResponseStructure
-import pers.camel.iotdm.login.User
-import pers.camel.iotdm.login.UserRepo
+import pers.camel.iotdm.device.repo.ActiveRepo
+import pers.camel.iotdm.login.entity.User
 import pers.camel.iotdm.login.getCurrentUser
+import pers.camel.iotdm.login.repo.UserRepo
 import pers.camel.iotdm.login.utils.RememberMeService
-import pers.camel.iotdm.message.MessageRepo
+import pers.camel.iotdm.message.repo.MessageRepo
 
 @RestController
 @RequestMapping("/api/device")
@@ -22,6 +23,7 @@ import pers.camel.iotdm.message.MessageRepo
 class DeviceController(
     @Autowired val userRepo: UserRepo,
     @Autowired val messageRepo: MessageRepo,
+    @Autowired val activeRepo: ActiveRepo,
     @Autowired val rememberMeService: RememberMeService
 ) {
     private final val log = LogFactory.getLog(DeviceController::class.java)
@@ -62,6 +64,50 @@ class DeviceController(
                 false, "Internal server error.", HttpStatus.INTERNAL_SERVER_ERROR.value(), null
             )
             return ResponseEntity<ResponseStructure<DeviceStatistics>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
+
+    data class ActiveDeviceNums(
+        val time: Long, var activeNum: Long
+    )
+
+    @Operation(summary = "Get active device numbers")
+    @GetMapping("/active")
+    fun activeNums(
+        request: HttpServletRequest,
+        response: HttpServletResponse
+    ): ResponseEntity<ResponseStructure<List<ActiveDeviceNums>>> {
+        try {
+            val user = getCurrentUser(request, response, userRepo, rememberMeService)
+
+            // initialize active device numbers in the last 24 hours
+            val activeDeviceNums = mutableListOf<ActiveDeviceNums>()
+            for (i in 0..23) {
+                activeDeviceNums.add(ActiveDeviceNums(System.currentTimeMillis() - 3600000 * (23 - i), 0))
+            }
+
+            // get active device numbers
+            activeRepo.findAllByUserID(user.id).forEach {
+                val hour = it.hour
+                if (hour >= System.currentTimeMillis() / 3600000 - 23) {
+                    activeDeviceNums[(hour - System.currentTimeMillis() / 3600000 + 23).toInt()].activeNum =
+                        it.activeNum
+                }
+            }
+
+            log.debug("Get active device numbers success: ${user.id}")
+            val ret = ResponseStructure<List<ActiveDeviceNums>>(true, "", HttpStatus.OK.value(), null)
+            ret.data = activeDeviceNums
+            return ResponseEntity<ResponseStructure<List<ActiveDeviceNums>>>(ret, HttpStatus.OK)
+        } catch (e: Exception) {
+            log.error("Get device statistics failed: $e")
+            val ret = ResponseStructure<List<ActiveDeviceNums>>(
+                false,
+                "Internal server error.",
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                null
+            )
+            return ResponseEntity<ResponseStructure<List<ActiveDeviceNums>>>(ret, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 

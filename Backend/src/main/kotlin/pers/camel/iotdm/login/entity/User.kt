@@ -1,4 +1,4 @@
-package pers.camel.iotdm.login
+package pers.camel.iotdm.login.entity
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id

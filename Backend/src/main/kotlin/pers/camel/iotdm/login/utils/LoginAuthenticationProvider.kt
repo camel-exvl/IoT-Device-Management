@@ -6,7 +6,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
-import pers.camel.iotdm.login.UserRepo
+import pers.camel.iotdm.login.repo.UserRepo
 
 class LoginAuthenticationProvider(@Autowired private val userRepo: UserRepo) : AuthenticationProvider {
     override fun authenticate(authentication: Authentication): Authentication {

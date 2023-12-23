@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
-import pers.camel.iotdm.login.UserRepo
+import pers.camel.iotdm.login.repo.UserRepo
 import pers.camel.iotdm.login.utils.AuthenticationFilter
 import pers.camel.iotdm.login.utils.HttpRequestFilter
 import pers.camel.iotdm.login.utils.LoginAuthenticationProvider

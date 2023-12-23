@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.web.bind.annotation.*
 import pers.camel.iotdm.ResponseStructure
+import pers.camel.iotdm.login.entity.User
+import pers.camel.iotdm.login.repo.UserRepo
 import pers.camel.iotdm.login.utils.RememberMeService
 import org.springframework.security.core.userdetails.User as SecurityUser
 

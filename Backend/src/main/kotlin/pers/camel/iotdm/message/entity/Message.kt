@@ -1,4 +1,4 @@
-package pers.camel.iotdm.message
+package pers.camel.iotdm.message.entity
 
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id

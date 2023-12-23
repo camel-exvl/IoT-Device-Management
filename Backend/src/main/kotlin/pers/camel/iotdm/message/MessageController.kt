@@ -12,9 +12,13 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pers.camel.iotdm.ResponseStructure
-import pers.camel.iotdm.login.UserRepo
+import pers.camel.iotdm.device.entity.ActiveDevice
+import pers.camel.iotdm.device.repo.ActiveRepo
 import pers.camel.iotdm.login.getCurrentUser
+import pers.camel.iotdm.login.repo.UserRepo
 import pers.camel.iotdm.login.utils.RememberMeService
+import pers.camel.iotdm.message.entity.Message
+import pers.camel.iotdm.message.repo.MessageRepo
 
 @RestController
 @RequestMapping("/api/message")
@@ -22,6 +26,7 @@ import pers.camel.iotdm.login.utils.RememberMeService
 class MessageController(
     @Autowired val userRepo: UserRepo,
     @Autowired val messageRepo: MessageRepo,
+    @Autowired val activeRepo: ActiveRepo,
     @Autowired val rememberMeService: RememberMeService
 ) {
     private final val log = LogFactory.getLog(MessageController::class.java)
@@ -33,6 +38,7 @@ class MessageController(
     ): ResponseEntity<ResponseStructure<Nothing>> {
         synchronized(this) {
             return try {
+                // insert message ID into device
                 val user = userRepo.findById(message.userID.toString()).get()
                 val device = user.devices.find { it.id == message.deviceID }
                 if (device != null) {
@@ -45,6 +51,22 @@ class MessageController(
                 }
 
                 messageRepo.insert(message)
+
+                // update active device if necessary
+                val hour = message.time / 3600000
+                // if last message is not in the same hour, update active device
+                if (device.messages.size == 1 || messageRepo.findById(device.messages[device.messages.size - 2].toString())
+                        .get().time / 3600000 != hour
+                ) {
+                    val activeDevice = activeRepo.findByUserIDAndHour(message.userID, hour)
+                    if (activeDevice != null) {
+                        activeDevice.activeNum += 1
+                        activeRepo.save(activeDevice)
+                    } else {
+                        activeRepo.insert(ActiveDevice(message.userID, hour, 1, (hour + 1) * 3600000))
+                    }
+                }
+
                 log.debug("Create message success.")
                 val ret = ResponseStructure(true, "", HttpStatus.CREATED.value(), null)
                 ResponseEntity(ret, HttpStatus.CREATED)
@@ -81,7 +103,7 @@ class MessageController(
     ): ResponseEntity<ResponseStructure<MessageList>> {
         return try {
             val pageable = Pageable.ofSize(pageSize).withPage(pageNum)
-            val messages = messageRepo.findAllByDeviceID(ObjectId(deviceID), pageable)
+            val messages = messageRepo.findAllByDeviceIDOrderByTimeAsc(ObjectId(deviceID), pageable)
             val messageListData = messages.map {
                 MessageListData(it.id.toString(), it.info, it.value, it.alert, it.lng, it.lat, it.time)
             }
