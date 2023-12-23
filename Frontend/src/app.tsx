@@ -9,6 +9,8 @@ import LoginPage from "./pages/User/Login";
 import {UserInfo} from "./service/typing";
 import DevicePage from "./pages/Device";
 import MessagePage from "./pages/Message";
+import UserInfoPage from "./pages/User/Info";
+import RegisterPage from "./pages/User/Register/register.tsx";
 
 const route = {
     path: '/',
@@ -20,7 +22,7 @@ const route = {
         },
         {
             path: '/user/settings',
-            name: '个人中心',
+            name: '个人信息',
             icon: <UserOutlined/>,
         },
         {
@@ -72,6 +74,7 @@ const App: React.FC = () => {
                 >
                     <Routes>
                         <Route path="/user/login" element={<LoginPage/>}/>
+                        <Route path="/user/register" element={<RegisterPage/>}/>
                         <Route path="/*" element={
                             <ProLayout title={"物华天宝"} logo={"/logo.svg"} layout={"mix"} route={route}
                                        fixSiderbar={true} contentWidth={"Fluid"} location={{pathname}}
@@ -87,6 +90,7 @@ const App: React.FC = () => {
                                 <Routes>
                                     <Route path="/" element={<Navigate replace to={"/welcome"}/>}/>
                                     <Route path="/welcome" element={<Welcome/>}/>
+                                    <Route path="/user/settings" element={<UserInfoPage/>}/>
                                     <Route path="/device" element={<DevicePage/>}/>
                                     <Route path="/message" element={<MessagePage/>}/>
                                 </Routes>

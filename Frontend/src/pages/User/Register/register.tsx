@@ -1,14 +1,13 @@
-import {LockOutlined, UserOutlined,} from '@ant-design/icons';
-import {LoginForm, ProFormCheckbox, ProFormText,} from '@ant-design/pro-components';
-import {Alert, Button, message} from 'antd';
-import React, {useContext, useState} from 'react';
+import React, {useState} from "react";
+import {LoginForm, ProFormText} from "@ant-design/pro-components";
+import {RegisterData} from "../../../service/typing";
+import {DoubleLeftOutlined, LockOutlined, UserOutlined} from "@ant-design/icons";
 import {useEmotionCss} from "@ant-design/use-emotion-css";
-import {Current, Login} from "../../../service/user.ts";
-import {LoginData} from "../../../service/typing";
-import {useLocation, useNavigate} from "react-router-dom";
-import {UserInfoContext} from "../../../app.tsx";
+import {Register} from "../../../service/user.ts";
+import {Alert, Button, message} from "antd";
+import {useNavigate} from "react-router-dom";
 
-const LoginMessage: React.FC<{
+const RegisterMessage: React.FC<{
     content: string;
 }> = ({content}) => {
     return (
@@ -23,15 +22,9 @@ const LoginMessage: React.FC<{
     );
 };
 
-const LoginPage: React.FC = () => {
+const RegisterPage: React.FC = () => {
     const [errorMsg, setErrorMsg] = useState<string>("");
-    const [userInfo, setUserInfo] = useContext(UserInfoContext);
-    const location = useLocation();
     const navigate = useNavigate();
-
-    if (location.state) {
-        message.error("请先登录！");
-    }
 
     const containerClassName = useEmotionCss(() => {
         return {
@@ -45,34 +38,33 @@ const LoginPage: React.FC = () => {
         };
     });
 
-    const handleSubmit = async (values: LoginData) => {
-        const {data, code} = await Login(values);
+    const handleSubmit = async (values: RegisterData) => {
+        const {data, code} = await Register(values);
         switch (code) {
-            case 200:
+            case 201:
                 setErrorMsg("");
-                message.success('登录成功！');
-                await Current([userInfo, setUserInfo])
-                navigate("/welcome");
+                message.success('注册成功！');
+                navigate("/user/login");
                 return;
-            case 404:
-                setErrorMsg("登录失败：用户不存在");
+            case 400:
+                setErrorMsg("注册失败：用户名、邮箱或密码不合法");
                 break;
-            case 401:
-                setErrorMsg("登录失败：密码错误");
+            case 409:
+                setErrorMsg("注册失败：用户名或邮箱已存在");
                 break;
             case 500:
-                setErrorMsg("登录失败：服务器错误");
+                setErrorMsg("注册失败：服务器错误");
                 break;
             default:
-                setErrorMsg("登录失败，请重试");
+                setErrorMsg("注册失败，请重试");
         }
     }
 
-    document.title = "登录 - 物华天宝";
+    document.title = "注册 - 物华天宝";
     return (
         <div className={containerClassName}>
             <title>
-                登录 - 物华天宝
+                注册 - 物华天宝
             </title>
             <div
                 style={{
@@ -97,11 +89,16 @@ const LoginPage: React.FC = () => {
                         autoLogin: true,
                     }}
                     onFinish={async (values) => {
-                        await handleSubmit(values as LoginData);
+                        await handleSubmit(values as RegisterData);
+                    }}
+                    submitter={{
+                        searchConfig: {
+                            submitText: '注册',
+                        },
                     }}
                 >
 
-                    {errorMsg !== "" && (<LoginMessage content={errorMsg}/>)}
+                    {errorMsg !== "" && (<RegisterMessage content={errorMsg}/>)}
                     {(
                         <>
                             <ProFormText
@@ -112,6 +109,15 @@ const LoginPage: React.FC = () => {
                                 }}
                                 placeholder={"用户名："}
                                 rules={[{required: true, message: "请输入用户名！",},]}
+                            />
+                            <ProFormText
+                                name="email"
+                                fieldProps={{
+                                    size: 'large',
+                                    prefix: <UserOutlined/>,
+                                }}
+                                placeholder={"邮箱："}
+                                rules={[{required: true, message: "请输入正确的邮箱！", type: "email",},]}
                             />
                             <ProFormText.Password
                                 name="password"
@@ -124,7 +130,6 @@ const LoginPage: React.FC = () => {
                             />
                         </>
                     )}
-
                     <div
                         style={{
                             marginBottom: 24,
@@ -132,20 +137,18 @@ const LoginPage: React.FC = () => {
                             justifyContent: 'space-between',
                         }}
                     >
-                        <ProFormCheckbox noStyle name="rememberMe">
-                            自动登录
-                        </ProFormCheckbox>
                         <Button
+                            icon={<DoubleLeftOutlined/>}
                             type="link"
                             size="small"
-                            onClick={() => navigate("/user/register")}>
-                            注册新账号
+                            onClick={() => navigate("/user/login")}>
+                            已有账号，去登录
                         </Button>
                     </div>
                 </LoginForm>
             </div>
         </div>
     );
-};
+}
 
-export default LoginPage;
+export default RegisterPage;

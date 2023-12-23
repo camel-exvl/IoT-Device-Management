@@ -57,7 +57,7 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({user, children}) => {
             {
                 key: 'settings',
                 icon: <UserOutlined/>,
-                label: '个人中心',
+                label: '个人信息',
             },
             {
                 type: 'divider' as const,

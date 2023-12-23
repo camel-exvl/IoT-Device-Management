@@ -1,6 +1,6 @@
 import React from "react";
 import {getFetcher, postFetcher} from "../utils.ts";
-import {LoginData, UserInfo} from "./typing";
+import {LoginData, RegisterData, UserInfo} from "./typing";
 
 export const Current = async (user: [UserInfo, React.Dispatch<{ type: string, payload: UserInfo }>]) => {
     const [userInfo, setUserInfo] = user
@@ -11,6 +11,10 @@ export const Current = async (user: [UserInfo, React.Dispatch<{ type: string, pa
         }
         return data;
     });
+}
+
+export const Register = async (registerData: RegisterData) => {
+    return postFetcher(`/user/register`, JSON.stringify(registerData));
 }
 
 export const Login = async (loginData: LoginData) => {
