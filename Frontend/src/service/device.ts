@@ -14,6 +14,10 @@ export const GetDeviceStatistics = async () => {
     return getFetcher(`/device/statistics`);
 }
 
+export const GetActiveDeviceNums = async () => {
+    return getFetcher(`/device/active`);
+}
+
 export const CreateDevice = async (name: string, type: number, description: string) => {
     return postFetcher(`/device/create`, JSON.stringify({name, type, description}));
 }

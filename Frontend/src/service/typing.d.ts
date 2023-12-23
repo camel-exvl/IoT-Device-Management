@@ -24,6 +24,11 @@ export interface DeviceStatistics {
     deviceType: {type: number, num: number}[];
 }
 
+export interface DeviceActiveNums {
+    time: number;
+    activeNum: number;
+}
+
 export interface DeviceListData {
     id: string,
     name: string,

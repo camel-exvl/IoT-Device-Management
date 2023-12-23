@@ -1,13 +1,13 @@
 import {PageContainer} from '@ant-design/pro-components';
 import {Card, Col, Row, Statistic, theme, Typography} from 'antd';
 import React, {useContext, useEffect, useState} from 'react';
-import {ApiOutlined, ClusterOutlined, BarChartOutlined} from "@ant-design/icons";
+import {ApiOutlined, BarChartOutlined, ClusterOutlined} from "@ant-design/icons";
 import {UserInfoContext} from "../../app.tsx";
 import {Link} from "react-router-dom";
 import Title from "antd/es/typography/Title";
-import {GetDeviceStatistics} from "../../service/device.ts";
-import {DeviceStatistics} from "../../service/typing";
-import {measureTextWidth, Pie} from "@ant-design/charts";
+import {GetActiveDeviceNums, GetDeviceStatistics} from "../../service/device.ts";
+import {DeviceActiveNums, DeviceStatistics} from "../../service/typing";
+import {Line, measureTextWidth, Pie} from "@ant-design/charts";
 
 const DeviceType = new Map<number, string>([
     [0, "传感器"],
@@ -23,6 +23,8 @@ const DeviceType = new Map<number, string>([
 const Welcome: React.FC = () => {
         const [userInfo, setUserInfo] = useContext(UserInfoContext)
         const [deviceStatistics, setDeviceStatistics] = useState({} as DeviceStatistics);
+        const [deviceActiveNums, setDeviceActiveNums] = useState([] as DeviceActiveNums[]);
+        const [deviceActiveNumsLoading, setDeviceActiveNumsLoading] = useState(false);
         const [deviceType, setDeviceType] = useState([] as { type: string, num: number }[]);
         const [deviceStatisticsLoading, setDeviceStatisticsLoading] = useState(false);
         const {token} = theme.useToken();
@@ -47,9 +49,18 @@ const Welcome: React.FC = () => {
                         deviceType.push({type: DeviceType.get(parseInt(type)) || "", num: res.data.deviceType[type].num});
                     }
                     setDeviceType(deviceType);
-                    console.log(deviceType);
 
                     setDeviceStatisticsLoading(false);
+                })
+
+                setDeviceActiveNumsLoading(true);
+                GetActiveDeviceNums().then((res) => {
+                    // convert timestamp to string
+                    for (const deviceActiveNum of res.data) {
+                        deviceActiveNum.time = new Date(parseInt(deviceActiveNum.time)).toLocaleString();
+                    }
+                    setDeviceActiveNums(res.data);
+                    setDeviceActiveNumsLoading(false);
                 })
             }
         }, [userInfo]);
@@ -137,38 +148,60 @@ const Welcome: React.FC = () => {
                                 </Card>
                             </Col>
                         </Row>
-                        <Card style={{marginTop: 32}}>
-                            <Title level={5} style={{marginBottom: 25}}>设备类型</Title>
-                            <Pie appendPadding={10} data={deviceType} angleField='num' colorField='type' radius={1}
-                                 innerRadius={0.64} meta={{value: {formatter: (v) => `${v} 台`,},}} label={{
-                                type: 'inner',
-                                offset: '-50%',
-                                style: {textAlign: 'center',},
-                                autoRotate: false,
-                                content: '{value}',
-                            }} statistic={{
-                                title: {
-                                    offsetY: -4,
-                                    style: {lineHeight: '1.5',},
-                                    customHtml: (container, view, datum) => {
-                                        const {width, height} = container.getBoundingClientRect();
-                                        const d = Math.sqrt(Math.pow(width / 2, 2) + Math.pow(height / 2, 2));
-                                        const text = datum ? datum.type : '总计';
-                                        return renderStatistic(d, text, {fontSize: 28,});
-                                    },
-                                },
-                                content: {
-                                    offsetY: 4,
-                                    style: {fontSize: '32px', lineHeight: '1.5',},
-                                    customHtml: (container, view, datum, data) => {
-                                        const {width} = container.getBoundingClientRect();
-                                        const text = datum ? `${datum.num} 台` : `${data?.reduce((r, d) => r + d.num, 0)} 台`;
-                                        return renderStatistic(width, text, {fontSize: 32,});
-                                    },
-                                },
-                            }} legend={{position: 'top', layout: 'horizontal', marker: {symbol: 'square',},style: {fontSize: 80,},}}
-                                 interactions={[{type: 'element-selected',}, {type: 'element-active',}, {type: 'pie-statistic-active',},]}/>
-                        </Card>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Card style={{marginTop: 32}}>
+                                    <Title level={5} style={{marginBottom: 25}}>设备类型</Title>
+                                    <Pie appendPadding={10} data={deviceType} angleField='num' colorField='type' radius={1}
+                                         innerRadius={0.64} meta={{value: {formatter: (v) => `${v} 台`,},}} label={{
+                                        type: 'inner',
+                                        offset: '-50%',
+                                        style: {textAlign: 'center',},
+                                        autoRotate: false,
+                                        content: '{value}',
+                                    }} statistic={{
+                                        title: {
+                                            offsetY: -4,
+                                            style: {lineHeight: '1.5',},
+                                            customHtml: (container, view, datum) => {
+                                                const {width, height} = container.getBoundingClientRect();
+                                                const d = Math.sqrt(Math.pow(width / 2, 2) + Math.pow(height / 2, 2));
+                                                const text = datum ? datum.type : '总计';
+                                                return renderStatistic(d, text, {fontSize: 28,});
+                                            },
+                                        },
+                                        content: {
+                                            offsetY: 4,
+                                            style: {fontSize: '32px', lineHeight: '1.5',},
+                                            customHtml: (container, view, datum, data) => {
+                                                const {width} = container.getBoundingClientRect();
+                                                const text = datum ? `${datum.num} 台` : `${data?.reduce((r, d) => r + d.num, 0)} 台`;
+                                                return renderStatistic(width, text, {fontSize: 32,});
+                                            },
+                                        },
+                                    }} legend={{
+                                        position: 'top',
+                                        layout: 'horizontal',
+                                        marker: {symbol: 'square',},
+                                        style: {fontSize: 80,},
+                                    }}
+                                         interactions={[{type: 'element-selected',}, {type: 'element-active',}, {type: 'pie-statistic-active',},]}/>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card style={{marginTop: 32}}>
+                                    <Title level={5} style={{marginBottom: 25}}>活跃设备数量</Title>
+                                    <Line data={deviceActiveNums} xField='time' yField='activeNum' smooth={true}
+                                          yAxis={{label: {formatter: (v) => `${v} 台`,},}}
+                                          tooltip={{
+                                              formatter: (v) => ({
+                                                  name: '活跃设备数量',
+                                                  value: `${v.activeNum} 台`,
+                                              }),
+                                          }}/>
+                                </Card>
+                            </Col>
+                        </Row>
                     </Typography>
                 }
             </PageContainer>

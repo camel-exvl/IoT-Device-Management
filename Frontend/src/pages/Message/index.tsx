@@ -204,7 +204,7 @@ const MessagePage: React.FC = () => {
     }, [geoCenter]);
 
     useEffect(() => {
-        console.log(geoPath,polyline);
+        console.log(geoPath, polyline);
         if (polyline.current && geoPath.length > 0) {
             polyline.current.setPath(geoPath);
         }
@@ -228,6 +228,19 @@ const MessagePage: React.FC = () => {
                             };
                         }
                         const res = await GetMessageList(deviceSelected, (params.current ?? 1) - 1, params.pageSize ?? 10);
+
+                        if (res.data.messages.length === 0) {
+                            setGeoCenter([120.21201, 30.2084]);
+                            setGeoPath([]);
+                            setGeoJSONCollectionAlert({});
+                            setGeoJSONCollectionNoAlert({});
+                            return {
+                                data: [],
+                                success: true,
+                                total: 0,
+                            };
+                        }
+
                         setGeoCenter([res.data.messages[0].lng, res.data.messages[0].lat]);
                         const geoPath = res.data.messages.map((message) => [message.lng, message.lat] as AMap.LocationValue);
                         setGeoPath(geoPath)
