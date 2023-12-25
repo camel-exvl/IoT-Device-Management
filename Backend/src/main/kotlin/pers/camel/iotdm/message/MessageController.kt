@@ -98,12 +98,17 @@ class MessageController(
         @RequestParam("deviceID") deviceID: String,
         @RequestParam("pageNum") pageNum: Int,
         @RequestParam("pageSize") pageSize: Int,
+        @RequestParam("timeAsc") timeAsc: Boolean,
         request: HttpServletRequest,
         response: HttpServletResponse
     ): ResponseEntity<ResponseStructure<MessageList>> {
         return try {
             val pageable = Pageable.ofSize(pageSize).withPage(pageNum)
-            val messages = messageRepo.findAllByDeviceIDOrderByTimeAsc(ObjectId(deviceID), pageable)
+            val messages = if (timeAsc) {
+                messageRepo.findAllByDeviceIDOrderByTimeAsc(ObjectId(deviceID), pageable)
+            } else {
+                messageRepo.findAllByDeviceIDOrderByTimeDesc(ObjectId(deviceID), pageable)
+            }
             val messageListData = messages.map {
                 MessageListData(it.id.toString(), it.info, it.value, it.alert, it.lng, it.lat, it.time)
             }

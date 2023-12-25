@@ -50,7 +50,8 @@ class UserController(
     )
 
     private fun validateUsername(username: String): Boolean {
-        return username.length in 6..20
+        val usernameRegex = Regex("^[a-zA-Z0-9_-]{6,20}\$")
+        return usernameRegex.matches(username)
     }
 
     private fun validateEmail(email: String): Boolean {
@@ -59,7 +60,8 @@ class UserController(
     }
 
     private fun validatePassword(password: String): Boolean {
-        return password.length in 6..20
+        val passwordRegex = Regex("^[a-zA-Z0-9_-]{6,20}\$")
+        return passwordRegex.matches(password)
     }
 
     @Operation(summary = "Create a new user")

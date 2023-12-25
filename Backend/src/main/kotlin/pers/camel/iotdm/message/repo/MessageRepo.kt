@@ -10,6 +10,7 @@ import pers.camel.iotdm.message.entity.Message
 @Repository
 interface MessageRepo : MongoRepository<Message, String> {
     fun insert(message: Message): Message
+    fun findAllByDeviceIDOrderByTimeDesc(deviceID: ObjectId, pageable: Pageable): Page<Message>
     fun findAllByDeviceIDOrderByTimeAsc(deviceID: ObjectId, pageable: Pageable): Page<Message>
     fun deleteAllByDeviceID(deviceID: ObjectId)
 }

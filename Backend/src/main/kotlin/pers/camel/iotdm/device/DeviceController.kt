@@ -82,8 +82,9 @@ class DeviceController(
 
             // initialize active device numbers in the last 24 hours
             val activeDeviceNums = mutableListOf<ActiveDeviceNums>()
+            val currentTime = System.currentTimeMillis() / 3600000 * 3600000
             for (i in 0..23) {
-                activeDeviceNums.add(ActiveDeviceNums(System.currentTimeMillis() - 3600000 * (23 - i), 0))
+                activeDeviceNums.add(ActiveDeviceNums(currentTime - 3600000 * (23 - i), 0))
             }
 
             // get active device numbers
