@@ -107,6 +107,7 @@ const MessagePage: React.FC = () => {
             dataIndex: "time",
             key: "time",
             hideInSearch: true,
+            sorter: true,
             valueType: "dateTime",
         },
     ];
@@ -227,7 +228,11 @@ const MessagePage: React.FC = () => {
                                 total: 0,
                             };
                         }
-                        const res = await GetMessageList(deviceSelected, (params.current ?? 1) - 1, params.pageSize ?? 10);
+                        let timeSort=false;
+                        if (sort.time) {
+                            timeSort = sort.time === 'ascend';
+                        }
+                        const res = await GetMessageList(deviceSelected, (params.current ?? 1) - 1, params.pageSize ?? 10,timeSort);
 
                         if (res.data.messages.length === 0) {
                             setGeoCenter([120.21201, 30.2084]);

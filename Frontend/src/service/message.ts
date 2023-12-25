@@ -1,8 +1,8 @@
 import {deleteFetcher, getFetcher} from "../utils.ts";
 import {MessageList} from "./typing";
 
-export const GetMessageList = async (deviceID: string, pageNum: number, pageSize: number) => {
-    return await getFetcher(`/message/list?deviceID=${deviceID}&pageNum=${pageNum}&pageSize=${pageSize}`) as {
+export const GetMessageList = async (deviceID: string, pageNum: number, pageSize: number, timeAsc: boolean) => {
+    return await getFetcher(`/message/list?deviceID=${deviceID}&pageNum=${pageNum}&pageSize=${pageSize}&timeAsc=${timeAsc}`) as {
         data: MessageList,
         code: number
     };

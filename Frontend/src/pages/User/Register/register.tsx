@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import {LoginForm, ProFormText} from "@ant-design/pro-components";
 import {RegisterData} from "../../../service/typing";
-import {DoubleLeftOutlined, LockOutlined, UserOutlined} from "@ant-design/icons";
+import {DoubleLeftOutlined, LockOutlined, MailOutlined, UserOutlined} from "@ant-design/icons";
 import {useEmotionCss} from "@ant-design/use-emotion-css";
 import {Register} from "../../../service/user.ts";
 import {Alert, Button, message} from "antd";
@@ -108,13 +108,22 @@ const RegisterPage: React.FC = () => {
                                     prefix: <UserOutlined/>,
                                 }}
                                 placeholder={"用户名："}
-                                rules={[{required: true, message: "请输入用户名！",},]}
+                                rules={[{required: true, message: "请输入用户名！",}, {
+                                    validator(_, value, callback) {
+                                        const regExp = /^[a-zA-Z0-9_-]{6,20}$/;
+                                        if (value != "" && !regExp.test(value)) {
+                                            callback("用户名不合法(长度在6-20位, 只能包含大小写字母、数字、下划线和减号)");
+                                        } else {
+                                            callback();
+                                        }
+                                    },
+                                },]}
                             />
                             <ProFormText
                                 name="email"
                                 fieldProps={{
                                     size: 'large',
-                                    prefix: <UserOutlined/>,
+                                    prefix: <MailOutlined/>,
                                 }}
                                 placeholder={"邮箱："}
                                 rules={[{required: true, message: "请输入正确的邮箱！", type: "email",},]}
@@ -126,7 +135,16 @@ const RegisterPage: React.FC = () => {
                                     prefix: <LockOutlined/>,
                                 }}
                                 placeholder={"密码："}
-                                rules={[{required: true, message: "请输入密码！",},]}
+                                rules={[{required: true, message: "请输入密码！",}, {
+                                    validator(_, value, callback) {
+                                        const regExp = /^[a-zA-Z0-9_-]{6,20}$/;
+                                        if (value != "" && !regExp.test(value)) {
+                                            callback("密码不合法(长度在6-20位, 只能包含大小写字母、数字、下划线和减号)");
+                                        } else {
+                                            callback();
+                                        }
+                                    },
+                                },]}
                             />
                         </>
                     )}

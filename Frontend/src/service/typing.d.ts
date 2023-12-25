@@ -23,6 +23,16 @@ export interface LoginData {
     rememberMe: boolean;
 }
 
+export interface ModifyInfoData {
+    username: string;
+    email: string;
+}
+
+export interface ModifyPasswordData {
+    oldPassword: string;
+    newPassword: string;
+}
+
 export interface DeviceStatistics {
     deviceCount: number;
     activeDeviceCount: number;
