@@ -47,8 +47,9 @@ public class WorkerThread extends Thread {
                 ObjectId deviceId = devices.get(rand.nextInt(devices.size()));
 
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                Date now = new Date();
-                Long value = rand.nextLong(100);
+                // random time in the past 24 hours
+                Date now = new Date(System.currentTimeMillis() - rand.nextInt(24 * 3600 * 1000));
+                long value = rand.nextLong(100);
                 Message msg = new Message();
                 msg.setUserID(userId.toString());
                 msg.setDeviceID(deviceId.toString());
@@ -58,8 +59,8 @@ public class WorkerThread extends Thread {
                 msg.setAlert(value > 80);
                 rand.nextFloat();
                 //根据杭州经纬度随机生成设备位置信息
-                msg.setLng(119.9 + rand.nextFloat() * 0.6);
-                msg.setLat(30.1 + rand.nextFloat() * 0.4);
+                msg.setLng(120.21201 + rand.nextFloat() * 0.6);
+                msg.setLat(30.2084 + rand.nextFloat() * 0.4);
                 msg.setTime(now.getTime());
                 ObjectMapper mapper = new ObjectMapper();
                 content = mapper.writeValueAsString(msg);
