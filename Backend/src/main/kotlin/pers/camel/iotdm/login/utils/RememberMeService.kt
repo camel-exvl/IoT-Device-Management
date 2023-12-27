@@ -18,7 +18,8 @@ class RememberMeService : TokenBasedRememberMeServices {
         super.setAlwaysRemember(true)
         super.setCookieName("remember-me")
         super.setCookieDomain(cookieDomain)
-        super.setUseSecureCookie(false)
+        super.setUseSecureCookie(true)
+//        super.setUseSecureCookie(false)
     }
 
     constructor(
@@ -30,7 +31,8 @@ class RememberMeService : TokenBasedRememberMeServices {
         super.setAlwaysRemember(true)
         super.setCookieName("remember-me")
         super.setCookieDomain(cookieDomain)
-        super.setUseSecureCookie(false)
+        super.setUseSecureCookie(true)
+//        super.setUseSecureCookie(false)
     }
 
     override fun onLoginSuccess(

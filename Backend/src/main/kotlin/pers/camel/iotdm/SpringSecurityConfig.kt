@@ -27,9 +27,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter
 import org.springframework.stereotype.Service
-import org.springframework.web.cors.CorsConfiguration
-import org.springframework.web.cors.CorsConfigurationSource
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import pers.camel.iotdm.login.repo.UserRepo
 import pers.camel.iotdm.login.utils.AuthenticationFilter
 import pers.camel.iotdm.login.utils.HttpRequestFilter
@@ -51,20 +48,23 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
         http
             .authorizeHttpRequests { authorize ->
                 authorize
+                    .requestMatchers("/index.html/**").permitAll()
+                    .requestMatchers("/assets/**").permitAll()
+                    .requestMatchers("logo.svg").permitAll()
                     .requestMatchers("/api/user/login").permitAll()
                     .requestMatchers("/api/user/register").permitAll()
                     .requestMatchers("/api/message/create").permitAll()
-                    .requestMatchers("/swagger-ui/**").permitAll()
-                    .requestMatchers("api-docs/**").permitAll()
+                    .requestMatchers("/swagger-ui/**").denyAll()
+                    .requestMatchers("api-docs/**").denyAll()
                     .anyRequest().authenticated()
             }
             // TODO: set csrf
             .csrf { csrf ->
                 csrf.disable()
             }
-            .cors { cors ->
-                cors.configurationSource(corsConfigurationSource())
-            }
+//            .cors { cors ->
+//                cors.configurationSource(corsConfigurationSource())
+//            }
             .httpBasic { basic ->
                 basic.authenticationEntryPoint { request, response, authException ->
                     response.contentType = "application/json;charset=UTF-8"
@@ -95,17 +95,17 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
         return http.build()
     }
 
-    @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
-        val configuration = CorsConfiguration()
-        configuration.allowedOrigins = listOf("http://localhost:5173")
-        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        configuration.allowedHeaders = listOf("*")
-        configuration.allowCredentials = true
-        val source = UrlBasedCorsConfigurationSource()
-        source.registerCorsConfiguration("/**", configuration)
-        return source
-    }
+//    @Bean
+//    fun corsConfigurationSource(): CorsConfigurationSource {
+//        val configuration = CorsConfiguration()
+//        configuration.allowedOrigins = listOf("http://localhost:5173")
+//        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+//        configuration.allowedHeaders = listOf("*")
+//        configuration.allowCredentials = true
+//        val source = UrlBasedCorsConfigurationSource()
+//        source.registerCorsConfiguration("/**", configuration)
+//        return source
+//    }
 
     @Bean
     fun authenticationManager(): AuthenticationManager {

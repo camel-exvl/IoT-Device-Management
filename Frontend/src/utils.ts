@@ -1,6 +1,7 @@
 import type {Response} from "./service/typing";
 
-const prefix = "http://127.0.0.1:8080/api";
+// const prefix = "http://127.0.0.1:8080/api";
+const prefix = "https://iot.camel-zy.top/api";
 
 export async function getFetcher(key: string) {
 
