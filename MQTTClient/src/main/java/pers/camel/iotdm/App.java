@@ -42,6 +42,11 @@ public class App {
                     deviceIds.add((ObjectId) device.get("_id"));
                 }
 
+                if (deviceIds.isEmpty()) {
+                    log.warn("User {} has no device", doc.get("_id"));
+                    continue;
+                }
+
                 for (int i = 0; i < maxThread; ++i) {
                     WorkerThread workerThread = new WorkerThread();
                     workerThread.setUserId((ObjectId) doc.get("_id"));
