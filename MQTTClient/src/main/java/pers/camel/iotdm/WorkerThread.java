@@ -72,7 +72,7 @@ public class WorkerThread extends Thread {
             mqttClient.disconnect();
             log.info("[{}] Disconnected", clientId);
         } catch (Exception e) {
-            log.error("[{}] Error: {}", clientId, e.getMessage());
+            log.error("[{}] Error: {}", clientId, e.toString());
         }
     }
 }
