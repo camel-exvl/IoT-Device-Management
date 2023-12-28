@@ -60,10 +60,17 @@ class MessageController(
                 ) {
                     val activeDevice = activeRepo.findByUserIDAndHour(message.userID, hour)
                     if (activeDevice != null) {
-                        activeDevice.activeNum += 1
+                        activeDevice.activeDevice += message.deviceID
                         activeRepo.save(activeDevice)
                     } else {
-                        activeRepo.insert(ActiveDevice(message.userID, hour, 1, (hour + 1) * 3600000))
+                        activeRepo.insert(
+                            ActiveDevice(
+                                message.userID,
+                                hour,
+                                setOf(message.deviceID),
+                                (hour + 1) * 3600000
+                            )
+                        )
                     }
                 }
 

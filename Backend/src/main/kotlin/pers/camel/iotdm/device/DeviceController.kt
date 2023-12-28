@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.apache.commons.logging.LogFactory
+import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -45,12 +46,11 @@ class DeviceController(
         try {
             val user = getCurrentUser(request, response, userRepo, rememberMeService)
             val deviceCount = user.devices.size
-            // activeDeviceCount: last message time within 1 hour
-            val activeDeviceCount =
-                user.devices.filter {
-                    it.messages.isNotEmpty() && messageRepo.findById(it.messages.last().toString())
-                        .get().time >= System.currentTimeMillis() - 3600000
-                }.size
+            var activeDeviceCount =
+                activeRepo.findByUserIDAndHour(user.id, System.currentTimeMillis() / 3600000)?.activeDevice?.size
+            if (activeDeviceCount == null) {
+                activeDeviceCount = 0
+            }
             val messageCount = user.devices.sumOf { it.messages.size }
             val deviceType = user.devices.groupBy { it.type }.map { DeviceTypeData(it.key, it.value.size) }
 
@@ -92,7 +92,7 @@ class DeviceController(
                 val hour = it.hour
                 if (hour >= System.currentTimeMillis() / 3600000 - 23) {
                     activeDeviceNums[(hour - System.currentTimeMillis() / 3600000 + 23).toInt()].activeNum =
-                        it.activeNum
+                        it.activeDevice.size.toLong()
                 }
             }
 
@@ -255,6 +255,15 @@ class DeviceController(
         try {
             return try {
                 val user = getCurrentUser(request, response, userRepo, rememberMeService)
+
+                // delete messages
+                messageRepo.deleteAllByDeviceID(ObjectId(id))
+
+                // get all active device and delete the device from the active device list
+                activeRepo.findAll().forEach {
+                    it.activeDevice = it.activeDevice.filter { it.toString() != id }.toSet()
+                    activeRepo.save(it)
+                }
 
                 val device = user.devices.find { it.id.toString() == id } ?: throw Exception("Device not found.")
                 user.devices = user.devices.filter { it.id.toString() != id }
