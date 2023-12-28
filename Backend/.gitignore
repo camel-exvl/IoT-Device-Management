@@ -5,6 +5,11 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 logs/
+src/main/resources/application.properties
+src/main/resources/application_production.properties
+src/main/resources/application_dev.properties
+src/main/resources/static/**
+src/main/resources/keystore.p12
 
 ### STS ###
 .apt_generated
