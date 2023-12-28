@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Field
 data class ActiveDevice(
     @Field("userID") val userID: ObjectId,
     @Field("timestamp") val hour: Long,
-    @Field("activeNum") var activeNum: Long,
+    @Field("activeDevice") var activeDevice: Set<ObjectId>,
     @Field("expire")
     @Indexed(expireAfter = "1d")
     val expire: Long
