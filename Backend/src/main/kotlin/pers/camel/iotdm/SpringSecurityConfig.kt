@@ -51,6 +51,9 @@ class SpringSecurityConfig(@Autowired private val userRepo: UserRepo) {
         http
             .authorizeHttpRequests { authorize ->
                 authorize
+                    .requestMatchers("/index.html/**").permitAll()
+                    .requestMatchers("/assets/**").permitAll()
+                    .requestMatchers("logo.svg").permitAll()
                     .requestMatchers("/api/user/login").permitAll()
                     .requestMatchers("/api/user/register").permitAll()
                     .requestMatchers("/api/message/create").permitAll()

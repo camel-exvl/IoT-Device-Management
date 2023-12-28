@@ -1,4 +1,4 @@
-package pers.camel.iotdm;
+package pers.camel.mqttClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Setter;

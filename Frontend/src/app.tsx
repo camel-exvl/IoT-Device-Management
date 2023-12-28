@@ -2,7 +2,7 @@ import React, {createContext, useEffect, useReducer, useState} from "react";
 import {ConfigProvider, theme} from "antd";
 import {BarChartOutlined, ControlOutlined, SmileOutlined, UserOutlined} from "@ant-design/icons";
 import {ProLayout} from "@ant-design/pro-components";
-import {BrowserRouter, Link, Navigate, Route, Routes} from "react-router-dom";
+import {HashRouter, Link, Navigate, Route, Routes} from "react-router-dom";
 import Welcome from "./pages/Welcome/Welcome.tsx";
 import {AvatarProps} from "./components/AvatarDropDown.tsx";
 import LoginPage from "./pages/User/Login";
@@ -61,7 +61,7 @@ const App: React.FC = () => {
     }, [window.location.pathname]);
     return (
         <UserInfoContext.Provider value={[userInfo, setUserInfo]}>
-            <BrowserRouter>
+            <HashRouter>
                 <ConfigProvider
                     theme={{
                         algorithm: theme.defaultAlgorithm,
@@ -98,7 +98,7 @@ const App: React.FC = () => {
                         }/>
                     </Routes>
                 </ConfigProvider>
-            </BrowserRouter>
+            </HashRouter>
         </UserInfoContext.Provider>
     );
 };

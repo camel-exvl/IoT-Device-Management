@@ -1,0 +1,50 @@
+version: "3"
+services:
+  mongodb:
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./docker/mongo/data:/data/db
+    networks:
+      iotdm:
+        ipv4_address: 172.16.0.2
+  emqx:
+    image: emqx/emqx:5.4.0
+    restart: always
+    ports:
+      - 1883:1883
+      - 8083:8083
+      - 8883:8883
+      - 8084:8084
+      - 18083:18083
+    volumes:
+      - ./docker/emqx/data:/opt/emqx/data
+    networks:
+      iotdm:
+        ipv4_address: 172.16.0.3
+  iotdm:
+    build: ./Backend
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - mongodb
+      - emqx
+    networks:
+      iotdm:
+        ipv4_address: 172.16.0.4
+  # mqttclient:
+  #   build: ./MQTTClient
+  #   restart: always
+  #   depends_on:
+  #     - mongodb
+  #     - emqx
+networks:
+  iotdm:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/16
